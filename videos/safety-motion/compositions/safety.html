@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Техника безопасности — сцена</title>
+  </head>
+  <body>
+    <template>
+      <style>
+      @font-face {
+        font-family: "Oswald";
+        src: url("assets/fonts/oswald-cyrillic-700-normal.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+        font-display: block;
+      }
+
+      #root {
+        --safety: #ffc20e;
+        --paper: #f6f4ee;
+        --ink: #0f1012;
+        --ink-lift: #1d1e22;
+        --stripe: 50px;
+      }
+
+      #root *,
+      #root *::before,
+      #root *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      #root {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        font-family: "Oswald", sans-serif;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .clip {
+        position: absolute;
+        inset: 0;
+      }
+
+      #scene {
+        background: radial-gradient(ellipse at 50% 42%, var(--ink-lift) 0%, var(--ink) 68%);
+      }
+
+      /* Hazard bands: decorative, absolute by design. */
+      .band {
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 120px;
+        overflow: hidden;
+      }
+
+      /* Wider than the band so a two-period scroll never exposes an edge. */
+      .band-strip {
+        position: absolute;
+        top: 0;
+        left: -300px;
+        width: calc(100% + 600px);
+        height: 100%;
+        background: repeating-linear-gradient(
+          -45deg,
+          var(--safety) 0 var(--stripe),
+          var(--ink) var(--stripe) calc(var(--stripe) * 2)
+        );
+      }
+
+      .band-top {
+        top: 0;
+      }
+
+      .band-bottom {
+        bottom: 0;
+      }
+
+      .stage-breath,
+      .stage-shake {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      #root .content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 64px;
+        width: 100%;
+        height: 100%;
+        padding: 200px 80px;
+      }
+
+      .sign-shake {
+        display: block;
+        width: 470px;
+        height: 420px;
+      }
+
+      .sign {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .sign svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+
+      .sign-face {
+        fill: var(--safety);
+        stroke: var(--safety);
+        stroke-width: 30;
+        stroke-linejoin: round;
+      }
+
+      .sign-rim {
+        fill: none;
+        stroke: var(--ink);
+        stroke-width: 14;
+        stroke-linejoin: round;
+      }
+
+      .sign-mark {
+        fill: var(--ink);
+      }
+
+      .lockup {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: var(--paper);
+        transform-origin: 50% 50%;
+      }
+
+      .line {
+        display: block;
+        white-space: nowrap;
+        letter-spacing: 0.01em;
+      }
+
+      .line-1 {
+        font-size: 228px;
+        line-height: 0.95;
+      }
+
+      .line-2 {
+        font-size: 132px;
+        line-height: 1.05;
+      }
+
+      #root .pill {
+        position: relative;
+        display: block;
+        overflow: hidden;
+        padding: 8px 44px 14px;
+      }
+
+      .pill-bg {
+        position: absolute;
+        inset: 0;
+        background: var(--safety);
+        transform-origin: 0% 50%;
+      }
+
+      .pill-text {
+        position: relative;
+        display: block;
+        white-space: nowrap;
+        color: var(--ink);
+        font-size: 104px;
+        line-height: 1.1;
+        letter-spacing: 0.02em;
+      }
+    </style>
+
+      <div
+        id="root"
+        data-composition-id="safety"
+        data-start="0"
+        data-duration="3"
+        data-fps="30"
+        data-width="1080"
+        data-height="1920"
+      >
+        <section id="scene" class="clip" data-start="0" data-duration="3" data-track-index="0">
+          <div class="stage-breath" id="stage-breath">
+            <div class="stage-shake" id="stage-shake">
+              <div class="content">
+                <div class="sign-shake" id="sign-shake">
+                  <div class="sign" id="sign">
+                    <svg viewBox="0 0 520 470" aria-hidden="true">
+                      <path class="sign-face" d="M260 30 L495 435 L25 435 Z" />
+                      <path class="sign-rim" d="M260 82 L450 409 L70 409 Z" />
+                      <rect class="sign-mark" x="236" y="172" width="48" height="146" rx="22" />
+                      <circle class="sign-mark" cx="260" cy="358" r="27" />
+                    </svg>
+                  </div>
+                </div>
+  
+                <div class="lockup" id="lockup" role="heading" aria-level="1" data-layout-allow-overflow="true">
+                  <span class="line line-1">Техника</span>
+                  <span class="line line-2">безопасности</span>
+                </div>
+  
+                <div class="pill" id="pill">
+                  <div class="pill-bg" id="pill-bg"></div>
+                  <span class="pill-text" id="pill-text" data-layout-allow-overflow="true">Прежде всего</span>
+                </div>
+              </div>
+            </div>
+          </div>
+  
+          <div class="band band-top" id="band-top" data-layout-allow-overflow="true"><div class="band-strip" id="strip-top" data-layout-allow-overflow="true"></div></div>
+          <div class="band band-bottom" id="band-bottom" data-layout-allow-overflow="true"><div class="band-strip" id="strip-bottom" data-layout-allow-overflow="true"></div></div>
+        </section>
+      </div>
+
+      <script src="assets/vendor/gsap.min.js"></script>
+      <script>
+        (function () {
+          // Horizontal period of 45deg stripes: (2 * stripe) / cos(45deg).
+          var STRIPE_PERIOD = (2 * 50) / Math.SQRT1_2;
+          var FRAME = 1 / 30;
+
+          var tl = gsap.timeline({ paused: true });
+
+          // Hook: hazard bands wipe in from opposite sides and keep scrolling.
+          tl.fromTo("#band-top", { xPercent: -100 }, { xPercent: 0, duration: 0.35, ease: "power4.out" }, 0);
+          tl.fromTo("#band-bottom", { xPercent: 100 }, { xPercent: 0, duration: 0.35, ease: "power4.out" }, 0.05);
+          tl.fromTo("#strip-top", { x: 0 }, { x: STRIPE_PERIOD * 2, duration: 3, ease: "none" }, 0);
+          tl.fromTo("#strip-bottom", { x: 0 }, { x: -STRIPE_PERIOD * 2, duration: 3, ease: "none" }, 0);
+
+          // Hook: warning sign punches in, lands at 0.45s with a short shake.
+          tl.fromTo(
+            "#sign",
+            { scale: 0.55, rotation: -10, autoAlpha: 0 },
+            { scale: 1, rotation: 0, autoAlpha: 1, duration: 0.4, ease: "back.out(2.2)" },
+            0.05,
+          );
+          tl.to("#sign-shake", { x: -12, duration: FRAME, ease: "power2.out" }, 0.45);
+          tl.to("#sign-shake", { x: 10, duration: FRAME, ease: "power2.out" });
+          tl.to("#sign-shake", { x: -5, duration: FRAME, ease: "power2.out" });
+          tl.to("#sign-shake", { x: 0, duration: FRAME, ease: "power2.out" });
+
+          // Build: headline-slam recipe (scale 1.6 -> 1, expo.out), lands at 1.33s.
+          tl.fromTo(
+            "#lockup",
+            { scale: 1.6, autoAlpha: 0 },
+            { scale: 1, autoAlpha: 1, duration: 0.58, ease: "expo.out" },
+            0.75,
+          );
+          tl.to("#stage-shake", { x: 6, y: -6, duration: FRAME, ease: "power2.out" }, 1.33);
+          tl.to("#stage-shake", { x: -4, y: 4, duration: FRAME, ease: "power2.out" });
+          tl.to("#stage-shake", { x: 0, y: 0, duration: FRAME, ease: "power2.out" });
+
+          // Punch: the yellow bar wipes in, then the line rises into it.
+          tl.fromTo("#pill-bg", { scaleX: 0 }, { scaleX: 1, duration: 0.3, ease: "power4.out" }, 1.65);
+          tl.fromTo(
+            "#pill-text",
+            { yPercent: 110, autoAlpha: 0 },
+            { yPercent: 0, autoAlpha: 1, duration: 0.3, ease: "power3.out" },
+            1.78,
+          );
+
+          // Resolve: the sign pulses on the beat; the whole frame breathes to the end.
+          tl.to("#sign", { scale: 1.1, duration: 0.16, ease: "sine.inOut", yoyo: true, repeat: 1 }, 2.05);
+          tl.fromTo(
+            "#stage-breath",
+            { scale: 1 },
+            { scale: 1.03, duration: 1.6, ease: "sine.inOut" },
+            1.4,
+          );
+
+          window.__timelines["safety"] = tl;
+          tl.seek(0);
+        })();
+      </script>
+    </template>
+  </body>
+</html>

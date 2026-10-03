@@ -1,0 +1,52 @@
+{
+  "category": "kinetic-type",
+  "duration_s": 3,
+  "fps": 30,
+  "canvas": { "w": 1080, "h": 1920, "aspect": "9:16" },
+  "style": "industrial safety signage: hazard stripes, warning triangle, heavy condensed caps; high energy, punchy",
+  "palette": ["#FFC20E", "#F6F4EE", "#0F1012"],
+  "font": "Oswald 700 (local woff2, Cyrillic subset)",
+  "beats": [0.45, 1.33, 2.05],
+  "export": "mp4",
+  "asset_needs": [],
+  "block": "headline-slam",
+  "customize": {
+    "how": "inline its slam recipe (scale 1.6 -> 1, expo.out, 3-frame stage shake) on a two-line headline; drop the upward exit so the piece ends on a hold",
+    "text": "ТЕХНИКА БЕЗОПАСНОСТИ",
+    "palette": "white headline on near-black, safety-yellow accents"
+  },
+  "content": {
+    "scenes": [
+      {
+        "id": "hook",
+        "start": 0,
+        "end": 0.7,
+        "text": "(warning triangle with !)",
+        "emphasis_words": [],
+        "emotion": "alarm",
+        "motion": "hazard-stripe bands bar_wipe in from opposite sides; triangle scale_punch (back.out) landing at 0.45s with a short shake",
+        "beats": [0.45]
+      },
+      {
+        "id": "build",
+        "start": 0.7,
+        "end": 1.7,
+        "text": "ТЕХНИКА БЕЗОПАСНОСТИ",
+        "emphasis_words": ["БЕЗОПАСНОСТИ"],
+        "emotion": "weight, authority",
+        "motion": "headline-slam: scale 1.6 -> 1 expo.out landing at 1.33s + 3-frame stage shake",
+        "beats": [1.33]
+      },
+      {
+        "id": "punch-resolve",
+        "start": 1.7,
+        "end": 3,
+        "text": "ПРЕЖДЕ ВСЕГО",
+        "emphasis_words": ["ПРЕЖДЕ ВСЕГО"],
+        "emotion": "resolve",
+        "motion": "yellow bar_wipe from left reveals black text (pattern interrupt), triangle scale_pulse on 2.05s, stripes keep scrolling, hold_breath to the end",
+        "beats": [2.05]
+      }
+    ]
+  }
+}
