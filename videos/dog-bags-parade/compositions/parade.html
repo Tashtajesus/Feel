@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Parade — Мешки для собак</title>
+  </head>
+  <body>
+    <template>
+      <style>
+        @font-face {
+          font-family: "Unbounded";
+          src: url("assets/fonts/unbounded-cyrillic-800-normal.woff2") format("woff2");
+          font-weight: 800;
+          unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+        }
+        @font-face {
+          font-family: "Rubik";
+          src: url("assets/fonts/rubik-cyrillic-700-normal.woff2") format("woff2");
+          font-weight: 700;
+          unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+        }
+        @font-face {
+          font-family: "Rubik";
+          src: url("assets/fonts/rubik-latin-700-normal.woff2") format("woff2");
+          font-weight: 700;
+          unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+        }
+        @font-face {
+          font-family: "Oswald";
+          src: url("assets/fonts/oswald-cyrillic-700-normal.woff2") format("woff2");
+          font-weight: 700;
+          unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+        }
+
+        #parade-root {
+          --ink: #221c17;
+          --paper: #fffdf8;
+          --green: #0f7f51;
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          color: var(--ink);
+          font-family: "Rubik", sans-serif;
+          font-weight: 700;
+        }
+
+        #parade-root #parade-scene {
+          position: absolute;
+          inset: 0;
+        }
+
+        #parade-root .p-shake {
+          display: block;
+          width: 100%;
+          height: 100%;
+        }
+
+        #parade-root .p-layout {
+          display: flex;
+          flex-direction: column;
+          gap: 40px;
+          width: 100%;
+          height: 100%;
+          padding: 200px 80px 340px;
+          box-sizing: border-box;
+        }
+
+        #parade-root .p-top {
+          position: relative;
+          z-index: 2;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex: 0 0 auto;
+        }
+
+        #parade-root .p-tag {
+          display: block;
+          padding: 14px 30px 16px;
+          border-radius: 999px;
+          background: var(--ink);
+          color: var(--paper);
+          font-size: 40px;
+          letter-spacing: 0.06em;
+          white-space: nowrap;
+        }
+
+        #parade-root .p-count {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 48px;
+          white-space: nowrap;
+        }
+
+        #parade-root .p-count-stack {
+          position: relative;
+          display: block;
+          width: 64px;
+          height: 58px;
+          overflow: hidden;
+        }
+
+        #parade-root .p-count-num {
+          position: absolute;
+          inset: 0;
+          display: block;
+          text-align: right;
+          line-height: 58px;
+        }
+
+        #parade-root .p-count-total {
+          display: block;
+          opacity: 0.45;
+        }
+
+        #parade-root .p-stage {
+          position: relative;
+          flex: 1 1 auto;
+        }
+
+        #parade-root .p-slot {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 30px;
+        }
+
+        #parade-root .p-bagwrap {
+          position: relative;
+          display: block;
+          width: 460px;
+          height: 621px;
+        }
+
+        #parade-root .p-shadow {
+          position: absolute;
+          left: 6%;
+          bottom: -34px;
+          width: 88%;
+          height: 64px;
+          background: radial-gradient(ellipse at center, rgba(34, 28, 23, 0.38) 0%, rgba(34, 28, 23, 0) 70%);
+        }
+
+        #parade-root .p-drop,
+        #parade-root .p-squash,
+        #parade-root .p-bag {
+          position: relative;
+          display: block;
+          width: 100%;
+          height: 100%;
+        }
+
+        #parade-root .p-squash {
+          transform-origin: 50% 100%;
+        }
+
+        #parade-root .p-bag svg {
+          display: block;
+          width: 100%;
+          height: 100%;
+          overflow: visible;
+        }
+
+        #parade-root .bag-name {
+          font-family: "Oswald", sans-serif;
+          font-weight: 700;
+        }
+
+        #parade-root .bag-sub {
+          font-family: "Rubik", sans-serif;
+          font-weight: 700;
+          letter-spacing: 2px;
+        }
+
+        #parade-root .p-name {
+          position: relative;
+          display: block;
+          font-family: "Unbounded", sans-serif;
+          font-weight: 800;
+          line-height: 1.05;
+          white-space: nowrap;
+        }
+
+        #parade-root .p-under {
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: -12px;
+          height: 16px;
+          border-radius: 8px;
+          transform-origin: 0% 50%;
+        }
+
+        #parade-root .p-chip {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 12px 34px 12px 14px;
+          border-radius: 999px;
+          background: var(--paper);
+          box-shadow: 0 10px 30px rgba(34, 28, 23, 0.12);
+          color: var(--green);
+          font-size: 50px;
+          letter-spacing: 0.04em;
+          white-space: nowrap;
+        }
+
+        #parade-root .p-chip svg {
+          display: block;
+          width: 64px;
+          height: 64px;
+        }
+      </style>
+
+      <div
+        id="parade-root"
+        data-composition-id="parade"
+        data-start="0"
+        data-duration="4.5"
+        data-fps="30"
+        data-width="1080"
+        data-height="1920"
+      >
+        <div id="parade-scene" class="clip" data-start="0" data-duration="4.5" data-track-index="0">
+          <div class="p-shake" id="parade-shake">
+            <div class="p-layout">
+              <div class="p-top" id="parade-top">
+                <span class="p-tag">МЕШКИ ДЛЯ СОБАК</span>
+                <span class="p-count">
+                  <span class="p-count-stack">
+                    <span class="p-count-num" id="parade-count-0" data-layout-allow-overflow="true">01</span>
+                    <span class="p-count-num" id="parade-count-1" data-layout-allow-overflow="true">02</span>
+                    <span class="p-count-num" id="parade-count-2" data-layout-allow-overflow="true">03</span>
+                    <span class="p-count-num" id="parade-count-3" data-layout-allow-overflow="true">04</span>
+                  </span>
+                  <span class="p-count-total">/ 04</span>
+                </span>
+              </div>
+
+              <div class="p-stage" id="parade-stage"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <script src="assets/vendor/gsap.min.js"></script>
+      <script src="assets/bag.js"></script>
+      <script>
+        (function () {
+          var brands = window.HFBags.brands;
+          var stage = document.getElementById("parade-stage");
+          var CHECK =
+            '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="24" fill="#0f7f51"/>' +
+            '<path d="M13 25 l7 7 l15 -16" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+          // Build the four slots from the shared brand list (deterministic markup).
+          brands.forEach(function (brand, i) {
+            var name = brand.name.toUpperCase();
+            // Unbounded caps run ~0.9em; keep the name inside the 920px column.
+            var size = Math.min(120, 840 / (name.length * 0.9));
+            var slot = document.createElement("div");
+            slot.className = "p-slot";
+            slot.id = "parade-slot-" + i;
+            slot.setAttribute("data-layout-allow-overflow", "true");
+            slot.innerHTML =
+              '<div class="p-bagwrap">' +
+              '<div class="p-shadow" id="parade-shadow-' + i + '"></div>' +
+              '<div class="p-drop" id="parade-drop-' + i + '" data-layout-allow-overflow="true">' +
+              '<div class="p-squash" id="parade-squash-' + i + '">' +
+              '<div class="p-bag">' + window.HFBags.svg(brand, "parade-" + i) + "</div>" +
+              "</div></div></div>" +
+              '<div class="p-name" id="parade-name-' + i + '" style="font-size:' + size.toFixed(1) + 'px">' +
+              name +
+              '<span class="p-under" id="parade-under-' + i + '" style="background:' + brand.color + '"></span>' +
+              "</div>" +
+              '<div class="p-chip" id="parade-chip-' + i + '">' + CHECK + "<span>В НАЛИЧИИ</span></div>";
+            stage.appendChild(slot);
+          });
+
+          var FRAME = 1 / 30;
+          var FALL = 0.38;
+          var tl = gsap.timeline({ paused: true });
+
+          function shake(at, amp) {
+            tl.to("#parade-shake", { x: amp, y: -amp * 0.6, duration: FRAME, ease: "power2.out" }, at);
+            tl.to("#parade-shake", { x: -amp * 0.7, y: amp * 0.4, duration: FRAME, ease: "power2.out" }, at + FRAME);
+            tl.to("#parade-shake", { x: 0, y: 0, duration: FRAME, ease: "power2.out" }, at + 2 * FRAME);
+          }
+
+          tl.fromTo(
+            "#parade-top",
+            { y: -60, autoAlpha: 0 },
+            { y: 0, autoAlpha: 1, duration: 0.3, ease: "power3.out" },
+            0,
+          );
+
+          brands.forEach(function (brand, i) {
+            var land = 0.5 + i; // bag lands on host beats 2s, 3s, 4s, 5s
+            var fall = land - FALL;
+            var dir = i % 2 === 0 ? -1 : 1;
+
+            // Counter rolls like a slot machine as the bag starts to fall:
+            // outgoing and incoming digits move in lockstep, so they never overlap.
+            var rollAt = i === 0 ? 0.05 : fall;
+            if (i > 0) {
+              tl.to("#parade-count-" + (i - 1), { yPercent: -100, duration: 0.25, ease: "power3.inOut" }, rollAt);
+            }
+            tl.fromTo(
+              "#parade-count-" + i,
+              { yPercent: 100 },
+              { yPercent: 0, duration: 0.25, ease: "power3.inOut" },
+              rollAt,
+            );
+
+            // Drop, shadow and landing squash.
+            tl.fromTo("#parade-drop-" + i, { y: -1500 }, { y: 0, duration: FALL, ease: "power2.in" }, fall);
+            tl.fromTo(
+              "#parade-shadow-" + i,
+              { scaleX: 0.25, autoAlpha: 0 },
+              { scaleX: 1, autoAlpha: 1, duration: FALL, ease: "power2.in" },
+              fall,
+            );
+            tl.to("#parade-squash-" + i, { scaleY: 0.84, scaleX: 1.12, duration: 0.07, ease: "power2.out" }, land);
+            tl.to("#parade-squash-" + i, { scaleY: 1, scaleX: 1, duration: 0.45, ease: "elastic.out(1, 0.4)" }, land + 0.07);
+            shake(land, 12);
+
+            // Name punches in, underline sweeps, availability chip rises.
+            tl.fromTo(
+              "#parade-name-" + i,
+              { scale: 0.4, autoAlpha: 0 },
+              { scale: 1, autoAlpha: 1, duration: 0.3, ease: "back.out(2.2)" },
+              land + 0.03,
+            );
+            tl.fromTo("#parade-under-" + i, { scaleX: 0 }, { scaleX: 1, duration: 0.25, ease: "power3.out" }, land + 0.15);
+            tl.fromTo(
+              "#parade-chip-" + i,
+              { y: 50, autoAlpha: 0 },
+              { y: 0, autoAlpha: 1, duration: 0.25, ease: "power3.out" },
+              land + 0.18,
+            );
+
+            // Exit: alternate side-whips; the last bag shrinks away toward the group shot.
+            if (i < brands.length - 1) {
+              tl.to(
+                "#parade-slot-" + i,
+                { x: dir * 1300, rotation: dir * 14, duration: 0.26, ease: "power3.in" },
+                land + 0.62,
+              );
+            } else {
+              tl.to(
+                "#parade-slot-" + i,
+                { scale: 0.35, y: -260, autoAlpha: 0, duration: 0.3, ease: "power3.in" },
+                land + 0.62,
+              );
+            }
+          });
+
+          window.__timelines["parade"] = tl;
+          tl.seek(0);
+        })();
+      </script>
+    </template>
+  </body>
+</html>

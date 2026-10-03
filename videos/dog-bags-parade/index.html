@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>Мешки для собак — парад</title>
+    <script src="assets/vendor/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: #fff4e4;
+      }
+
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      /* Cream backdrop with a drifting paw pattern (tile repeats, so the drift is seamless). */
+      #bg {
+        position: absolute;
+        inset: 0;
+        background-color: #fff4e4;
+        background-image:
+          radial-gradient(ellipse at 50% 38%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 60%),
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg fill='%23F6DFC0'%3E%3Cg transform='translate(60 70) rotate(-18) scale(0.6)'%3E%3Cellipse cx='0' cy='12' rx='26' ry='21'/%3E%3Cellipse cx='-29' cy='-14' rx='9' ry='12'/%3E%3Cellipse cx='-10' cy='-30' rx='9.5' ry='13'/%3E%3Cellipse cx='10' cy='-30' rx='9.5' ry='13'/%3E%3Cellipse cx='29' cy='-14' rx='9' ry='12'/%3E%3C/g%3E%3Cg transform='translate(180 190) rotate(16) scale(0.6)'%3E%3Cellipse cx='0' cy='12' rx='26' ry='21'/%3E%3Cellipse cx='-29' cy='-14' rx='9' ry='12'/%3E%3Cellipse cx='-10' cy='-30' rx='9.5' ry='13'/%3E%3Cellipse cx='10' cy='-30' rx='9.5' ry='13'/%3E%3Cellipse cx='29' cy='-14' rx='9' ry='12'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        background-size:
+          100% 100%,
+          240px 240px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="10"
+      data-fps="30"
+      data-width="1080"
+      data-height="1920"
+    >
+      <div id="bg" class="clip" data-start="0" data-duration="10" data-track-index="0"></div>
+
+      <div
+        id="hook"
+        data-composition-id="hook"
+        data-composition-src="compositions/hook.html"
+        data-start="0"
+        data-duration="1.5"
+        data-track-index="1"
+        data-width="1080"
+        data-height="1920"
+      ></div>
+
+      <div
+        id="parade"
+        data-composition-id="parade"
+        data-composition-src="compositions/parade.html"
+        data-start="1.5"
+        data-duration="4.5"
+        data-track-index="1"
+        data-width="1080"
+        data-height="1920"
+      ></div>
+
+      <div
+        id="finale"
+        data-composition-id="finale"
+        data-composition-src="compositions/finale.html"
+        data-start="6"
+        data-duration="4"
+        data-track-index="1"
+        data-width="1080"
+        data-height="1920"
+      ></div>
+
+      <audio
+        id="music"
+        src="assets/audio/parade-beat.wav"
+        data-start="0"
+        data-duration="10"
+        data-track-index="2"
+        data-volume="1"
+      ></audio>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo(
+        "#bg",
+        { backgroundPosition: "0px 0px, 0px 0px" },
+        { backgroundPosition: "0px 0px, 0px -480px", duration: 10, ease: "none" },
+        0,
+      );
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>
