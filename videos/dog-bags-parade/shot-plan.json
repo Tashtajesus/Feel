@@ -15,7 +15,7 @@
     "scenes": [
       { "id": "hook", "start": 0, "end": 1.5, "text": "Мешки / для собак / В НАЛИЧИИ", "emphasis_words": ["Мешки"], "emotion": "punchy", "motion": "slam on 0.5s, rise, rubber stamp on 1.0s, whip-up exit", "beats": [0.5, 1.0] },
       { "id": "parade", "start": 1.5, "end": 6, "text": "Сириус, Трендлайн, Дилли, Пилот — В НАЛИЧИИ", "emphasis_words": [], "emotion": "rhythmic, playful", "motion": "each bag falls and lands on a beat (2,3,4,5s) with squash + shake, name punch, chip; alternate side-whip exits", "beats": [2, 3, 4, 5] },
-      { "id": "finale", "start": 6, "end": 10, "text": "ВСЁ В НАЛИЧИИ / ЯНДЕКС ДОСТАВКА / МЫ В KASPI МАГАЗИНЕ / KASPI GOLD · KASPI RED · РАССРОЧКА / ССЫЛКА В ПРОФИЛЕ", "emphasis_words": ["ВСЁ"], "emotion": "resolve, call to action", "motion": "bags pop on eighths, chips slide on beats, CTA on final hit + pulse", "beats": [6, 7.5, 8, 9] }
+      { "id": "finale", "start": 6, "end": 10, "text": "ВСЁ В НАЛИЧИИ / ЯНДЕКС ДОСТАВКА / МЫ В KASPI МАГАЗИНЕ / KASPI GOLD · KASPI RED+ · РАССРОЧКА / ССЫЛКА В ПРОФИЛЕ", "emphasis_words": ["ВСЁ"], "emotion": "resolve, call to action", "motion": "bags pop on eighths, chips slide on beats, CTA on final hit + pulse", "beats": [6, 7.5, 8, 9] }
     ]
   }
 }

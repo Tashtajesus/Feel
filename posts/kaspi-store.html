@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1350" />
+    <title>Пост — Kaspi Магазин</title>
+    <link rel="stylesheet" href="posts.css" />
+    <style>
+      .h1 {
+        margin-top: 34px;
+        font-size: 104px;
+      }
+
+      .kaspi {
+        color: var(--kaspi);
+      }
+
+      .kicker {
+        margin-top: 22px;
+        padding: 0 10px;
+        background: linear-gradient(transparent 58%, #ffc9c2 58%, #ffc9c2 92%, transparent 92%);
+        font-size: 48px;
+        line-height: 1.15;
+        white-space: nowrap;
+      }
+
+      /* Payment options: 2 columns x 3 rows of cards. */
+      .pays {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        width: 100%;
+        margin-top: 30px;
+      }
+
+      .pay {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        min-height: 134px;
+        padding: 20px 22px;
+        border-radius: 28px;
+        background: var(--paper);
+        box-shadow: 0 10px 26px rgba(34, 28, 23, 0.1);
+      }
+
+      .pay-icon {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-content: center;
+        width: 76px;
+        height: 76px;
+        border-radius: 50%;
+      }
+
+      .pay-icon svg {
+        display: block;
+        width: 44px;
+        height: 44px;
+      }
+
+      .pay-text {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .pay-title {
+        font-size: 40px;
+        line-height: 1.1;
+        white-space: nowrap;
+      }
+
+      .pay-desc {
+        color: var(--muted);
+        font-weight: 600;
+        font-size: 28px;
+        line-height: 1.2;
+      }
+
+      .bags {
+        display: flex;
+        gap: 34px;
+        margin-top: 30px;
+      }
+
+      .bags .bag {
+        width: 134px;
+        height: 181px;
+      }
+
+      .cta {
+        margin-top: 32px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="post">
+      <span class="tag">ОПЛАТА</span>
+      <h1 class="h1">Мы в <span class="kaspi">Kaspi</span><br />Магазине</h1>
+      <p class="kicker">Платите как удобно</p>
+
+      <div class="pays">
+        <div class="pay">
+          <span class="pay-icon" style="background: #d4950b">
+            <svg viewBox="0 0 44 44" aria-hidden="true">
+              <rect x="4" y="10" width="36" height="25" rx="5" fill="#fffdf8" />
+              <rect x="4" y="15" width="36" height="5" fill="#d4950b" />
+              <rect x="9" y="25" width="10" height="5" rx="1.5" fill="#d4950b" />
+            </svg>
+          </span>
+          <span class="pay-text">
+            <span class="pay-title">Kaspi Gold</span>
+            <span class="pay-desc">оплата картой</span>
+          </span>
+        </div>
+
+        <div class="pay">
+          <span class="pay-icon" style="background: var(--kaspi)">
+            <svg viewBox="0 0 44 44" aria-hidden="true">
+              <rect x="3" y="14" width="30" height="22" rx="4" fill="#fffdf8" />
+              <rect x="3" y="19" width="30" height="4" fill="#de3a2b" />
+              <path d="M36 4 V16 M30 10 H42" stroke="#fffdf8" stroke-width="4" stroke-linecap="round" />
+            </svg>
+          </span>
+          <span class="pay-text">
+            <span class="pay-title">Kaspi Red+</span>
+            <span class="pay-desc">рассрочка 0%</span>
+          </span>
+        </div>
+
+        <div class="pay">
+          <span class="pay-icon" style="background: #2347a8">
+            <svg viewBox="0 0 44 44" aria-hidden="true">
+              <rect x="6" y="9" width="32" height="28" rx="5" fill="none" stroke="#fffdf8" stroke-width="3.5" />
+              <path d="M6 17 H38" stroke="#fffdf8" stroke-width="3.5" />
+              <path d="M15 5 V12 M29 5 V12" stroke="#fffdf8" stroke-width="3.5" stroke-linecap="round" />
+              <g fill="#fffdf8">
+                <rect x="12" y="22" width="5" height="4" rx="1" />
+                <rect x="19.5" y="22" width="5" height="4" rx="1" />
+                <rect x="27" y="22" width="5" height="4" rx="1" />
+                <rect x="12" y="29" width="5" height="4" rx="1" />
+                <rect x="19.5" y="29" width="5" height="4" rx="1" />
+              </g>
+            </svg>
+          </span>
+          <span class="pay-text">
+            <span class="pay-title">Рассрочка</span>
+            <span class="pay-desc">платите частями</span>
+          </span>
+        </div>
+
+        <div class="pay">
+          <span class="pay-icon" style="background: #14946a">
+            <svg viewBox="0 0 44 44" aria-hidden="true">
+              <rect x="4" y="12" width="36" height="21" rx="4" fill="none" stroke="#fffdf8" stroke-width="3.5" />
+              <circle cx="22" cy="22.5" r="5" fill="none" stroke="#fffdf8" stroke-width="3.5" />
+              <circle cx="10.5" cy="22.5" r="2" fill="#fffdf8" />
+              <circle cx="33.5" cy="22.5" r="2" fill="#fffdf8" />
+            </svg>
+          </span>
+          <span class="pay-text">
+            <span class="pay-title">Кредит</span>
+            <span class="pay-desc">на покупки</span>
+          </span>
+        </div>
+
+        <div class="pay">
+          <span class="pay-icon" style="background: #7b4bd3">
+            <svg viewBox="0 0 44 44" aria-hidden="true">
+              <path
+                d="M22 4.5 L27.2 15.4 L39 16.9 L30.3 25 L32.6 36.8 L22 31 L11.4 36.8 L13.7 25 L5 16.9 L16.8 15.4 Z"
+                fill="#fffdf8"
+                stroke="#fffdf8"
+                stroke-width="2"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+          <span class="pay-text">
+            <span class="pay-title">Kaspi Бонусы</span>
+            <span class="pay-desc">оплата бонусами</span>
+          </span>
+        </div>
+
+        <div class="pay">
+          <span class="pay-icon" style="background: var(--ink)">
+            <svg viewBox="0 0 44 44" aria-hidden="true">
+              <path d="M22 4 L40 13 H4 Z" fill="#fffdf8" stroke="#fffdf8" stroke-width="2" stroke-linejoin="round" />
+              <g fill="#fffdf8">
+                <rect x="8" y="17" width="5" height="14" rx="1" />
+                <rect x="19.5" y="17" width="5" height="14" rx="1" />
+                <rect x="31" y="17" width="5" height="14" rx="1" />
+                <rect x="4" y="34" width="36" height="5" rx="1.5" />
+              </g>
+            </svg>
+          </span>
+          <span class="pay-text">
+            <span class="pay-title">Любой банк</span>
+            <span class="pay-desc">Visa и&nbsp;Mastercard</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="bags" id="bags"></div>
+
+      <div class="cta">
+        <span>ССЫЛКА В ПРОФИЛЕ</span>
+        <svg viewBox="0 0 46 46" aria-hidden="true">
+          <path d="M23 40 V8 M10 20 L23 7 L36 20" stroke="#fffdf8" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+    </main>
+
+    <script src="../videos/dog-bags-parade/assets/bag.js"></script>
+    <script>
+      var row = document.getElementById("bags");
+      window.HFBags.brands.forEach(function (brand, i) {
+        var bag = document.createElement("div");
+        bag.className = "bag";
+        bag.innerHTML = window.HFBags.svg(brand, "row-" + i);
+        row.appendChild(bag);
+      });
+    </script>
+  </body>
+</html>
