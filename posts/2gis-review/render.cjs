@@ -59,7 +59,7 @@ const server = http.createServer((req, res) => {
     });
 
     // The final SVG sits one folder up from the draft, so fix the font paths for previews.
-    const finalSvg = '<?xml version="1.0" encoding="UTF-8"?>\n' + svg.replaceAll("../../../videos/", "../../videos/");
+    const finalSvg = '<?xml version="1.0" encoding="UTF-8"?>\n' + svg.replaceAll('url("../assets/fonts/', 'url("assets/fonts/');
     fs.writeFileSync(path.join(__dirname, name + ".svg"), finalSvg);
     // The page now shows the rewritten SVG, so the screenshot matches the saved file.
     await page.screenshot({ path: path.join(__dirname, name + ".png") });

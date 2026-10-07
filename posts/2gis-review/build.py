@@ -1,54 +1,65 @@
-"""Draw the «Дарим корм за отзыв в 2ГИС» creative as SVG (post and story).
+"""Draw the «Дарим лакомства за отзыв в 2ГИС» creative in the ZooGarden identity.
 
 Usage (from the repo root):
-  python3 posts/2gis-review/build.py   # writes draft SVGs to posts/2gis-review/draft/
+  python3 posts/2gis-review/build.py   # draft SVGs in posts/2gis-review/draft/
   node posts/2gis-review/render.cjs    # final Figma-ready SVGs + PNGs
 
-The SVG is the source for both the PNG and the Figma import, so it sticks to
-what Figma's SVG import keeps as editable layers: plain shapes, linear/radial
-gradients, inline presentation attributes and one <text> per line. No filters,
-no <pattern>, no CSS classes. The @font-face block only matters for rendering;
-in Figma the same fonts (Unbounded, Rubik, Oswald) come from Google Fonts.
+Identity (from the ZooGarden brand board): orange #FF8A00, green #4CAF3B,
+dark green #1D4B2A, cream #F6F1E8, sage #DEE4D9; Montserrat ExtraBold for
+headlines, Montserrat Medium/Bold for text, Caveat for handwritten stickers;
+white die-cut stickers, speech bubbles, leaves, paws and hearts.
+
+The SVG is both the PNG source and the Figma import, so it keeps to what
+Figma's SVG import turns into editable layers: shapes, a clip path for the
+photo, inline presentation attributes and one <text> per line. The photo is
+embedded as JPEG; the @font-face block only matters for rendering (in Figma
+Montserrat and Caveat come from Google Fonts).
 """
 
+import base64
+import math
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-FONTS = "../../../videos/dog-bags-parade/assets/fonts"
+FONTS = "../assets/fonts"  # relative to draft/; render.cjs rewrites it for the final files
+PHOTO = HERE / "assets" / "titbit-treats.jpg"  # 740x820 crop of the shop's photo
 
-INK, PAPER, CREAM, PAW_FILL = "#221C17", "#FFFDF8", "#FFF4E4", "#F6DFC0"
-MUTED, GREEN, GREEN_SOFT = "#5E554D", "#17A34A", "#DDF3E4"
-RIBBON, RIBBON_DARK, STAR = "#DE3A2B", "#A92A1F", "#F2A20C"
-BAG, BAG_DARK = "#2347A8", "#152E70"
+ORANGE, GREEN, DARK = "#FF8A00", "#4CAF3B", "#1D4B2A"
+CREAM, SAGE, WHITE = "#F6F1E8", "#DEE4D9", "#FFFFFF"
+PHOTO_RATIO = 820 / 740
 
 
 def font_faces():
-    faces = [
-        ("Unbounded", 800, "unbounded-cyrillic-800-normal", "cyr"),
-        ("Unbounded", 800, "unbounded-latin-800-normal", "lat"),
-        ("Rubik", 700, "rubik-cyrillic-700-normal", "cyr"),
-        ("Rubik", 700, "rubik-latin-700-normal", "lat"),
-        ("Rubik", 600, "rubik-cyrillic-600-normal", "cyr"),
-        ("Rubik", 600, "rubik-latin-600-normal", "lat"),
-        ("Oswald", 700, "oswald-cyrillic-700-normal", "cyr"),
-        ("Oswald", 700, "oswald-latin-700-normal", "lat"),
-    ]
+    faces = [("Montserrat", w) for w in (500, 700, 800)] + [("Caveat", 700)]
     ranges = {
-        "cyr": "U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116",
-        "lat": "U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+20AC, U+2122, U+2212",
+        "cyrillic": "U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116",
+        "latin": "U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+20AC, U+2122, U+2212",
     }
     return "\n".join(
-        f'@font-face{{font-family:"{fam}";font-weight:{w};src:url("{FONTS}/{f}.woff2") format("woff2");unicode-range:{ranges[r]};}}'
-        for fam, w, f, r in faces
+        f'@font-face{{font-family:"{fam}";font-weight:{w};'
+        f'src:url("{FONTS}/{fam.lower()}-{sub}-{w}-normal.woff2") format("woff2");unicode-range:{rng};}}'
+        for fam, w in faces
+        for sub, rng in ranges.items()
     )
 
 
-def text(x, y, s, size, family="Rubik", weight=700, fill=INK, anchor="middle", ident=None, extra=""):
+def text(x, y, s, size, family="Montserrat", weight=800, fill=WHITE, anchor="start", ident=None, extra=""):
     id_attr = f' id="{ident}"' if ident else ""
     return (
         f'<text{id_attr} x="{x}" y="{y}" font-family="{family}" font-weight="{weight}" font-size="{size}"'
         f' fill="{fill}" text-anchor="{anchor}"{extra}>{s}</text>'
     )
+
+
+def hand(x, y, s, size, fill=DARK, anchor="middle", ident=None):
+    return text(x, y, s, size, family="Caveat", weight=700, fill=fill, anchor=anchor, ident=ident)
+
+
+def heart(cx, cy, size, fill=ORANGE, stroke=None, width=0, rot=0):
+    k = size / 100
+    d = "M0 -28 C -18 -58 -66 -48 -64 -12 C -62 18 -30 38 0 62 C 30 38 62 18 64 -12 C 66 -48 18 -58 0 -28 Z"
+    paint = f'fill="none" stroke="{stroke}" stroke-width="{width / k:.1f}" stroke-linejoin="round"' if stroke else f'fill="{fill}"'
+    return f'<path transform="translate({cx} {cy}) rotate({rot}) scale({k:.3f})" d="{d}" {paint}/>'
 
 
 def paw(cx, cy, scale, rot, fill):
@@ -57,196 +68,176 @@ def paw(cx, cy, scale, rot, fill):
     return f'<g transform="translate({cx} {cy}) rotate({rot}) scale({scale})" fill="{fill}">{shapes}</g>'
 
 
-def background(w, h):
-    paws = "".join(
-        paw(tx + 60, ty + 70, 0.6, -18, PAW_FILL) + paw(tx + 180, ty + 190, 0.6, 16, PAW_FILL)
-        for ty in range(0, h, 240)
-        for tx in range(0, w, 240)
-    )
+def leaf(cx, cy, size, rot, fill, vein="#FFFFFF"):
+    k = size / 100
     return (
-        f'<rect id="background" width="{w}" height="{h}" fill="{CREAM}"/>'
-        f'<g id="paws">{paws}</g>'
-        f'<rect id="glow" width="{w}" height="{h}" fill="url(#glow-grad)"/>'
-    )
-
-
-def chip(cx, y, h, label, size, fill, color, ident, pad=30):
-    """Pill around a centered label; render.cjs sizes the pill to the measured text."""
-    return (
-        f'<g id="{ident}">'
-        f'<rect x="{cx - 100}" y="{y}" width="200" height="{h}" rx="{h / 2}" fill="{fill}" data-chip-for="{ident}-text" data-pad="{pad}"/>'
-        + text(cx, y + h / 2 + size * 0.36, label, size, fill=color, ident=f"{ident}-text", extra=' letter-spacing="2"')
-        + "</g>"
-    )
-
-
-def gift_bag(x, y, scale):
-    """Food bag with a ribbon and bow, drawn in a 400x540 box."""
-    body = "M44 58 C36 200 30 380 30 478 C30 510 52 524 84 524 L316 524 C348 524 370 510 370 478 C370 380 364 200 356 58 Z"
-    teeth = "M36 30" + "".join(" l10.25 -12 l10.25 12" for _ in range(16)) + " L364 74 Q200 84 36 74 Z"
-    return (
-        f'<g id="gift-bag" transform="translate({x} {y}) scale({scale})">'
-        f'<ellipse cx="200" cy="532" rx="190" ry="22" fill="{INK}" fill-opacity="0.16"/>'
-        f'<path d="{body}" fill="{BAG}"/>'
-        f'<path d="{body}" fill="url(#sheen)"/>'
-        f'<rect x="184" y="70" width="32" height="454" fill="{RIBBON}"/>'
-        f'<rect x="33" y="404" width="334" height="32" fill="{RIBBON}"/>'
-        f'<path d="{teeth}" fill="{BAG_DARK}"/>'
-        f'<line x1="52" y1="56" x2="348" y2="56" stroke="{PAPER}" stroke-opacity="0.45" stroke-width="3" stroke-dasharray="10 8"/>'
-        f'<rect x="72" y="138" width="256" height="206" rx="28" fill="{PAPER}"/>'
-        + paw(200, 192, 0.6, 0, BAG)
-        + text(200, 282, "КОРМ", 64, family="Oswald", weight=700, fill=BAG_DARK, ident="bag-name")
-        + text(200, 322, "В ПОДАРОК", 22, fill=MUTED, ident="bag-sub", extra=' letter-spacing="3"')
-        # Bow on the top seal.
-        + '<g transform="translate(200 36)">'
-        f'<path d="M-6 6 L-58 74 L-34 70 L-22 92 L-2 14 Z" fill="{RIBBON_DARK}"/>'
-        f'<path d="M6 6 L58 74 L34 70 L22 92 L2 14 Z" fill="{RIBBON_DARK}"/>'
-        f'<ellipse cx="-44" cy="-18" rx="48" ry="27" transform="rotate(-24 -44 -18)" fill="{RIBBON}"/>'
-        f'<ellipse cx="44" cy="-18" rx="48" ry="27" transform="rotate(24 44 -18)" fill="{RIBBON}"/>'
-        f'<ellipse cx="-40" cy="-16" rx="22" ry="10" transform="rotate(-24 -40 -16)" fill="{RIBBON_DARK}"/>'
-        f'<ellipse cx="40" cy="-16" rx="22" ry="10" transform="rotate(24 40 -16)" fill="{RIBBON_DARK}"/>'
-        f'<circle cx="0" cy="-4" r="20" fill="{RIBBON}"/>'
-        "</g></g>"
-    )
-
-
-def star(cx, cy, r):
-    import math
-
-    pts = []
-    for i in range(10):
-        rad = r if i % 2 == 0 else r * 0.45
-        a = math.radians(-90 + i * 36)
-        pts.append(f"{cx + rad * math.cos(a):.1f},{cy + rad * math.sin(a):.1f}")
-    return f'<polygon points="{" ".join(pts)}" fill="{PAPER}" stroke="{STAR}" stroke-width="4" stroke-linejoin="round"/>'
-
-
-def review_card(x, y, w, h, rot):
-    """Generic review being written: empty stars, a pencil, text lines. Not a copy of the 2GIS UI."""
-    cx, cy = x + w / 2, y + h / 2
-    stars = "".join(star(x + 58 + i * 52, y + 132, 20) for i in range(5))
-    lines = "".join(
-        f'<rect x="{x + 36}" y="{y + 178 + i * 30}" width="{lw}" height="14" rx="7" fill="#E9E2D8"/>'
-        for i, lw in enumerate((w - 72, w - 120, w - 190))
-    )
-    return (
-        f'<g id="review-card" transform="rotate({rot} {cx} {cy})">'
-        f'<rect x="{x}" y="{y + 10}" width="{w}" height="{h}" rx="30" fill="{INK}" fill-opacity="0.10"/>'
-        f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="30" fill="{PAPER}"/>'
-        f'<circle cx="{x + 64}" cy="{y + 62}" r="30" fill="{GREEN_SOFT}"/>'
-        f'<circle cx="{x + 64}" cy="{y + 54}" r="11" fill="{GREEN}"/>'
-        f'<path d="M{x + 44} {y + 82} Q{x + 64} {y + 60} {x + 84} {y + 82} Z" fill="{GREEN}"/>'
-        + text(x + 110, y + 74, "Ваш отзыв", 34, anchor="start", ident="review-title")
-        + stars
-        # Pencil writing the review.
-        + f'<g transform="translate({x + w - 72} {y + 130}) rotate(40)">'
-        f'<rect x="-9" y="-46" width="18" height="70" rx="3" fill="#FFD60A"/>'
-        f'<rect x="-9" y="-56" width="18" height="12" rx="3" fill="{RIBBON}"/>'
-        f'<path d="M-9 24 L9 24 L0 42 Z" fill="#F3D9B1"/><path d="M-3 36 L3 36 L0 42 Z" fill="{INK}"/>'
+        f'<g transform="translate({cx} {cy}) rotate({rot}) scale({k:.3f})">'
+        f'<path d="M0 -100 C 62 -70 70 30 0 100 C -70 30 -62 -70 0 -100 Z" fill="{fill}"/>'
+        f'<path d="M0 -70 Q 6 0 0 92" fill="none" stroke="{vein}" stroke-opacity="0.35" stroke-width="7" stroke-linecap="round"/>'
         "</g>"
-        + lines
-        + "</g>"
     )
 
 
-def map_pin(cx, cy, s):
+def sparks(cx, cy, size, rot, color=WHITE):
+    rays = [(-40, 0.55), (0, 0.75), (40, 0.55)]
+    lines = []
+    for angle, length in rays:
+        a = math.radians(angle - 90)
+        r0, r1 = size * 0.35, size * (0.35 + length)
+        lines.append(
+            f'<line x1="{r0 * math.cos(a):.1f}" y1="{r0 * math.sin(a):.1f}" x2="{r1 * math.cos(a):.1f}" y2="{r1 * math.sin(a):.1f}"'
+            f' stroke="{color}" stroke-width="{size * 0.09:.1f}" stroke-linecap="round"/>'
+        )
+    return f'<g transform="translate({cx} {cy}) rotate({rot})">{"".join(lines)}</g>'
+
+
+def wordmark(x, y, size, ident):
+    return text(x, y, "ZooGarden", size, ident=ident, extra=' letter-spacing="-1"')
+
+
+def headline(x, y1, y2, size, rot):
     return (
-        f'<g id="map-pin" transform="translate({cx} {cy}) scale({s})">'
-        f'<path d="M0 58 C-12 40 -44 14 -44 -12 A44 44 0 1 1 44 -12 C44 14 12 40 0 58 Z" fill="{GREEN}"/>'
-        f'<circle cx="0" cy="-12" r="27" fill="{PAPER}"/>'
-        + paw(0, -10, 0.42, 0, GREEN)
+        f'<g id="headline" transform="rotate({rot} {x} {y1})">'
+        + text(x, y1, "Дарим лакомства", size, ident="headline-1")
+        + f'<text id="headline-2" x="{x}" y="{y2}" font-family="Montserrat" font-weight="800" font-size="{size}" fill="{WHITE}">'
+        f'за отзыв в <tspan fill="{DARK}">2ГИС</tspan></text>'
+        "</g>"
+    )
+
+
+def photo_card(x, y, w, rot, href):
+    h = round(w * PHOTO_RATIO)
+    b = 14  # white sticker border
+    cx, cy = x + w / 2, y + h / 2
+    return (
+        f'<g id="photo" transform="rotate({rot} {cx} {cy})">'
+        f'<rect x="{x - b}" y="{y - b + 16}" width="{w + 2 * b}" height="{h + 2 * b}" rx="{44 + b}" fill="{DARK}" fill-opacity="0.22"/>'
+        f'<rect x="{x - b}" y="{y - b}" width="{w + 2 * b}" height="{h + 2 * b}" rx="{44 + b}" fill="{WHITE}"/>'
+        f'<clipPath id="photo-clip"><rect x="{x}" y="{y}" width="{w}" height="{h}" rx="44"/></clipPath>'
+        f'<image x="{x}" y="{y}" width="{w}" height="{h}" preserveAspectRatio="xMidYMid slice"'
+        f' href="{href}" xlink:href="{href}" clip-path="url(#photo-clip)"/>'
+        "</g>"
+    )
+
+
+def speech_bubble(x, y, w, h, rot, lines, size):
+    cx, cy = x + w / 2, y + h / 2
+    tail = f"M{x + w - 70} {y + h - 8} L{x + w + 26} {y + h + 34} L{x + w - 26} {y + h - 30} Z"
+    out = [
+        f'<g id="bubble" transform="rotate({rot} {cx} {cy})">',
+        f'<path d="{tail}" fill="{WHITE}"/>',
+        f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{h / 2.3:.0f}" fill="{WHITE}"/>',
+    ]
+    top = cy - (len(lines) - 1) * size * 0.5 + size * 0.32
+    for i, line in enumerate(lines):
+        out.append(hand(cx - 14, top + i * size, line, size, ident=f"bubble-{i + 1}"))
+    out.append(heart(x + w - 52, y + 42, 28, rot=12))
+    out.append("</g>")
+    return "".join(out)
+
+
+def round_sticker(cx, cy, r, rot, lines, size):
+    top = cy - (len(lines) - 1) * size * 0.5 + size * 0.32
+    return (
+        f'<g id="sticker" transform="rotate({rot} {cx} {cy})">'
+        f'<circle cx="{cx}" cy="{cy}" r="{r + 10}" fill="{WHITE}"/>'
+        f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{GREEN}"/>'
+        + "".join(hand(cx, top + i * size, line, size, fill=WHITE, ident=f"sticker-{i + 1}") for i, line in enumerate(lines))
         + "</g>"
     )
 
 
 def steps_card(x, y, w, row_h, size):
     rows = [
-        ("1", "Найдите Zoogarden в 2ГИС"),
+        ("1", "Найдите ZooGarden в 2ГИС"),
         ("2", "Напишите честный отзыв"),
-        ("3", "Покажите его на кассе — корм ваш"),
+        ("3", "Покажите его на кассе — лакомство ваше"),
     ]
-    pad = 34
-    h = pad * 2 + row_h * len(rows)
-    out = [f'<g id="steps"><rect x="{x}" y="{y}" width="{w}" height="{h}" rx="34" fill="{PAPER}"/>']
+    pad = 30
+    note_h = 52
+    h = pad * 2 + row_h * len(rows) + note_h
+    out = [f'<g id="steps"><rect x="{x}" y="{y}" width="{w}" height="{h}" rx="36" fill="{CREAM}"/>']
     for i, (n, label) in enumerate(rows):
         cy = y + pad + row_h * i + row_h / 2
-        out.append(f'<circle cx="{x + 66}" cy="{cy}" r="30" fill="{GREEN}"/>')
-        out.append(text(x + 66, cy + 11, n, 30, family="Unbounded", weight=800, fill=PAPER, ident=f"step-{n}-num"))
-        out.append(text(x + 118, cy + size * 0.36, label, size, anchor="start", ident=f"step-{n}-text"))
+        out.append(f'<circle cx="{x + 62}" cy="{cy}" r="27" fill="{GREEN}"/>')
+        out.append(text(x + 62, cy + 10, n, 28, anchor="middle", ident=f"step-{n}-num"))
+        out.append(text(x + 108, cy + size * 0.36, label, size, weight=700, fill=DARK, ident=f"step-{n}-text"))
+    line_y = y + pad + row_h * len(rows) + 6
+    out.append(f'<rect x="{x + 36}" y="{line_y}" width="{w - 72}" height="3" rx="1.5" fill="{SAGE}"/>')
+    out.append(
+        text(x + w / 2, line_y + 38, "Подарок — за любой честный отзыв, оценка не важна", size * 0.78,
+             weight=500, fill=DARK, anchor="middle", ident="note")
+    )
     out.append("</g>")
     return "".join(out), h
 
 
 def defs():
-    return (
-        "<defs>"
-        '<radialGradient id="glow-grad" cx="0.5" cy="0.42" r="0.62">'
-        '<stop offset="0" stop-color="#FFFFFF" stop-opacity="0.85"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>'
-        "</radialGradient>"
-        '<linearGradient id="sheen" x1="0" x2="1" y1="0" y2="0">'
-        '<stop offset="0" stop-color="#000000" stop-opacity="0.28"/>'
-        '<stop offset="0.13" stop-color="#000000" stop-opacity="0"/>'
-        '<stop offset="0.28" stop-color="#FFFFFF" stop-opacity="0.22"/>'
-        '<stop offset="0.4" stop-color="#FFFFFF" stop-opacity="0"/>'
-        '<stop offset="0.86" stop-color="#000000" stop-opacity="0"/>'
-        '<stop offset="1" stop-color="#000000" stop-opacity="0.3"/>'
-        "</linearGradient>"
-        f"<style>{font_faces()}</style>"
-        "</defs>"
-    )
-
-
-def headline(cx, y1, y2, s1, s2):
-    return (
-        '<g id="headline">'
-        + text(cx, y1, "Дарим корм", s1, family="Unbounded", weight=800, ident="headline-1")
-        + f'<text id="headline-2" x="{cx}" y="{y2}" font-family="Unbounded" font-weight="800" font-size="{s2}" fill="{INK}" text-anchor="middle">'
-        f'за отзыв в <tspan fill="{GREEN}">2ГИС</tspan></text>'
-        "</g>"
-    )
+    return f"<defs><style>{font_faces()}</style></defs>"
 
 
 def svg(w, h, body):
     return (
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">'
+        f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"'
+        f' width="{w}" height="{h}" viewBox="0 0 {w} {h}">'
         + defs()
-        + background(w, h)
+        + f'<rect id="background" width="{w}" height="{h}" fill="{ORANGE}"/>'
         + body
         + "</svg>\n"
     )
 
 
+def photo_href():
+    return "data:image/jpeg;base64," + base64.b64encode(PHOTO.read_bytes()).decode("ascii")
+
+
 def post():
     w, h = 1080, 1350
-    top = 848
-    steps, steps_h = steps_card(80, top, 920, 72, 38)
+    href = photo_href()
+    top = 972
+    steps, steps_h = steps_card(80, top, 920, 62, 32)
     body = (
-        chip(540, 70, 64, "АКЦИЯ", 32, INK, PAPER, "tag")
-        + headline(540, 256, 344, 100, 62)
-        + gift_bag(165, 410, 0.74)
-        + review_card(548, 436, 432, 290, -4)
-        + map_pin(948, 452, 1.0)
+        '<g id="decor">'
+        + leaf(1028, 78, 150, 38, GREEN)
+        + leaf(948, 40, 78, -18, DARK)
+        + paw(1046, 640, 0.95, -18, GREEN)
+        + paw(1000, 742, 0.7, 12, GREEN)
+        + sparks(858, 262, 58, 40)
+        + heart(330, 420, 46, stroke=WHITE, width=6, rot=-12)
+        + "</g>"
+        + wordmark(80, 104, 40, "wordmark")
+        + headline(80, 222, 314, 82, -3)
+        + photo_card(412, 368, 480, 4, href)
+        + speech_bubble(54, 486, 330, 176, -6, ["Это вам", "за отзыв!"], 60)
+        + round_sticker(330, 860, 84, 12, ["оценка", "любая!"], 42)
         + steps
-        + text(540, top + steps_h + 52, "Подарок — за любой честный отзыв, оценка не важна", 28, weight=600, fill=MUTED, ident="note")
-        + chip(540, top + steps_h + 80, 62, "Zoogarden · Павлодар", 32, INK, PAPER, "footer", pad=40)
     )
+    assert top + steps_h <= h - 70, "steps card too close to the bottom"
     return svg(w, h, body)
 
 
 def story():
     w, h = 1080, 1920
-    top = 1150
-    steps, steps_h = steps_card(80, top, 920, 84, 40)
+    href = photo_href()
+    steps, steps_h = steps_card(80, 1318, 920, 70, 32)
     body = (
-        chip(540, 250, 66, "АКЦИЯ", 34, INK, PAPER, "tag")
-        + headline(540, 450, 546, 106, 66)
-        + gift_bag(140, 630, 0.86)
-        + review_card(560, 660, 440, 296, -4)
-        + map_pin(960, 676, 1.08)
+        '<g id="decor">'
+        + leaf(1040, 236, 150, 38, GREEN)
+        + leaf(962, 196, 80, -18, DARK)
+        + paw(1046, 980, 1.0, -18, GREEN)
+        + paw(996, 1090, 0.74, 12, GREEN)
+        + sparks(922, 446, 62, 40)
+        + heart(330, 640, 50, stroke=WHITE, width=6, rot=-12)
+        + "</g>"
+        + wordmark(80, 268, 44, "wordmark")
+        + headline(80, 400, 496, 84, -3)
+        + photo_card(372, 584, 580, 4, href)
+        + speech_bubble(46, 712, 350, 190, -6, ["Это вам", "за отзыв!"], 64)
+        + round_sticker(320, 1186, 92, 12, ["оценка", "любая!"], 46)
         + steps
-        + text(540, top + steps_h + 62, "Подарок — за любой честный отзыв, оценка не важна", 30, weight=600, fill=MUTED, ident="note")
-        + chip(540, top + steps_h + 96, 66, "Zoogarden · Павлодар", 34, INK, PAPER, "footer", pad=42)
     )
+    # Instagram's reply bar and link sticker need the bottom ~260 px.
+    assert 1318 + steps_h <= h - 260, "steps card runs into the story's bottom zone"
     return svg(w, h, body)
 
 
