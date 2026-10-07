@@ -20,9 +20,12 @@ import base64
 import math
 from pathlib import Path
 
+from PIL import Image
+
 HERE = Path(__file__).resolve().parent
 FONTS = "../assets/fonts"  # relative to draft/; render.cjs rewrites it for the final files
 PHOTO = HERE / "assets" / "titbit-treats.jpg"  # 740x820 crop of the shop's photo
+MARK = HERE / "assets" / "zoogarden-mark.png"  # cut from the brand board by cut_logo.py
 
 ORANGE, GREEN, DARK = "#FF8A00", "#4CAF3B", "#1D4B2A"
 CREAM, SAGE, WHITE = "#F6F1E8", "#DEE4D9", "#FFFFFF"
@@ -93,6 +96,23 @@ def sparks(cx, cy, size, rot, color=WHITE):
 
 def wordmark(x, y, size, ident):
     return text(x, y, "ZooGarden", size, ident=ident, extra=' letter-spacing="-1"')
+
+
+def logo_lockup(cx, cy, r, size):
+    """The dog-and-cat mark on a white die-cut sticker, then the ZooGarden wordmark."""
+    with Image.open(MARK) as im:
+        mw, mh = im.size
+    w = r * 1.72
+    h = w * mh / mw
+    href = "data:image/png;base64," + base64.b64encode(MARK.read_bytes()).decode("ascii")
+    return (
+        '<g id="logo">'
+        f'<circle cx="{cx}" cy="{cy + 5}" r="{r + 6}" fill="{DARK}" fill-opacity="0.18"/>'
+        f'<circle cx="{cx}" cy="{cy}" r="{r + 6}" fill="{WHITE}"/>'
+        f'<image x="{cx - w / 2:.1f}" y="{cy - h / 2:.1f}" width="{w:.1f}" height="{h:.1f}" href="{href}" xlink:href="{href}"/>'
+        + wordmark(cx + r + 22, cy + size * 0.36, size, "wordmark")
+        + "</g>"
+    )
 
 
 def headline(x, y1, y2, size, rot):
@@ -194,7 +214,7 @@ def photo_href():
 def post():
     w, h = 1080, 1350
     href = photo_href()
-    top = 972
+    top = 980
     steps, steps_h = steps_card(80, top, 920, 62, 32)
     body = (
         '<g id="decor">'
@@ -202,14 +222,14 @@ def post():
         + leaf(948, 40, 78, -18, DARK)
         + paw(1046, 640, 0.95, -18, GREEN)
         + paw(1000, 742, 0.7, 12, GREEN)
-        + sparks(858, 262, 58, 40)
-        + heart(330, 420, 46, stroke=WHITE, width=6, rot=-12)
+        + sparks(858, 276, 58, 40)
+        + heart(330, 432, 46, stroke=WHITE, width=6, rot=-12)
         + "</g>"
-        + wordmark(80, 104, 40, "wordmark")
-        + headline(80, 222, 314, 82, -3)
-        + photo_card(412, 368, 480, 4, href)
-        + speech_bubble(54, 486, 330, 176, -6, ["Это вам", "за отзыв!"], 60)
-        + round_sticker(330, 860, 84, 12, ["оценка", "любая!"], 42)
+        + logo_lockup(130, 102, 46, 40)
+        + headline(80, 236, 328, 82, -3)
+        + photo_card(412, 380, 480, 4, href)
+        + speech_bubble(54, 498, 330, 176, -6, ["Это вам", "за отзыв!"], 60)
+        + round_sticker(330, 872, 84, 12, ["оценка", "любая!"], 42)
         + steps
     )
     assert top + steps_h <= h - 70, "steps card too close to the bottom"
@@ -219,25 +239,25 @@ def post():
 def story():
     w, h = 1080, 1920
     href = photo_href()
-    steps, steps_h = steps_card(80, 1318, 920, 70, 32)
+    steps, steps_h = steps_card(80, 1330, 920, 70, 32)
     body = (
         '<g id="decor">'
         + leaf(1040, 236, 150, 38, GREEN)
         + leaf(962, 196, 80, -18, DARK)
         + paw(1046, 980, 1.0, -18, GREEN)
         + paw(996, 1090, 0.74, 12, GREEN)
-        + sparks(922, 446, 62, 40)
-        + heart(330, 640, 50, stroke=WHITE, width=6, rot=-12)
+        + sparks(922, 458, 62, 40)
+        + heart(330, 652, 50, stroke=WHITE, width=6, rot=-12)
         + "</g>"
-        + wordmark(80, 268, 44, "wordmark")
-        + headline(80, 400, 496, 84, -3)
-        + photo_card(372, 584, 580, 4, href)
-        + speech_bubble(46, 712, 350, 190, -6, ["Это вам", "за отзыв!"], 64)
-        + round_sticker(320, 1186, 92, 12, ["оценка", "любая!"], 46)
+        + logo_lockup(132, 270, 50, 44)
+        + headline(80, 412, 508, 84, -3)
+        + photo_card(372, 596, 580, 4, href)
+        + speech_bubble(46, 724, 350, 190, -6, ["Это вам", "за отзыв!"], 64)
+        + round_sticker(320, 1198, 92, 12, ["оценка", "любая!"], 46)
         + steps
     )
     # Instagram's reply bar and link sticker need the bottom ~260 px.
-    assert 1318 + steps_h <= h - 260, "steps card runs into the story's bottom zone"
+    assert 1330 + steps_h <= h - 260, "steps card runs into the story's bottom zone"
     return svg(w, h, body)
 
 
