@@ -33,7 +33,7 @@
         (function () {
           function letters(el, txt) { for (var i = 0; i < txt.length; i++) { var s = document.createElement("span"); s.textContent = txt[i]; el.appendChild(s); } return el.children; }
           var chip = letters(document.getElementById("f1-chiptxt"), "NOW PLAYING");
-          var art = letters(document.getElementById("f1-artist"), "tashta x sickboyrostic");
+          var art = letters(document.getElementById("f1-artist"), "tashta x sickboyrostik");
           var tl = gsap.timeline({ paused: true, defaults: { immediateRender: false } });
 
           tl.fromTo("#f1-chip", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(2)" }, 0.15);

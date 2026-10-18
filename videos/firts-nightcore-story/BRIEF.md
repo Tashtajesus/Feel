@@ -2,7 +2,7 @@
 workflow: music-to-video
 flow: automation
 storyboard: no
-message: "tashta x sickboyrostic — firts"
+message: "tashta x sickboyrostik — firts"
 destination: instagram-stories
 aspect: "9:16"
 length: full-track
@@ -14,4 +14,4 @@ language: ru
 Аудио — оригинал, без ускорения (найткор только в визуале). Весь трек.
 
 ## Notes
-On-screen title (verbatim from user): "tashta x sickboyrostic - firts"
+On-screen title (verbatim from user): "tashta x sickboyrostik - firts"
