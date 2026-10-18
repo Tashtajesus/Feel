@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "Unbounded"; src: url("assets/fonts/unbounded-latin-900-normal.woff2") format("woff2"); font-weight: 900; }
+        @font-face { font-family: "Space Mono"; src: url("assets/fonts/space-mono-latin-700-normal.woff2") format("woff2"); font-weight: 700; }
+        #root { position: absolute; inset: 0; overflow: hidden; }
+        #f6-chip {
+          position: absolute; top: 300px; left: 50%; margin-left: -190px; width: 380px; height: 64px; opacity: 0;
+          border: 2px solid #4DF3FF; border-radius: 32px; box-shadow: 0 0 18px rgba(77, 243, 255, 0.55), inset 0 0 14px rgba(77, 243, 255, 0.25);
+          display: flex; align-items: center; justify-content: center; gap: 16px;
+          font-family: "Space Mono", monospace; font-weight: 700; font-size: 26px; letter-spacing: 0.2em; color: #FFF3FB;
+        }
+        #f6-tri { width: 0; height: 0; border-left: 16px solid #FF4FB4; border-top: 10px solid transparent; border-bottom: 10px solid transparent; filter: drop-shadow(0 0 6px #FF4FB4); }
+        #f6-card { position: absolute; left: 0; right: 0; top: 780px; height: 360px; }
+        #f6-title { position: absolute; left: 0; right: 0; top: 0; height: 240px; text-align: center; font-family: "Unbounded", sans-serif; font-weight: 900; font-size: 230px; line-height: 240px; letter-spacing: -0.04em; color: #FFF3FB; text-shadow: 0 0 24px rgba(255, 79, 180, 0.9), 0 0 70px rgba(255, 79, 180, 0.5); opacity: 0; }
+        #f6-artist { position: absolute; left: 0; right: 0; top: 270px; text-align: center; font-family: "Space Mono", monospace; font-weight: 700; font-size: 34px; letter-spacing: 0.16em; color: #FFF3FB; text-shadow: 0 0 14px rgba(77, 243, 255, 0.8); opacity: 0; }
+      </style>
+      <div id="root" data-composition-id="06-f6" data-width="1080" data-height="1920">
+        <div id="f6-chip"><div id="f6-tri"></div><div>NOW PLAYING</div></div>
+        <div id="f6-card">
+          <div id="f6-title">firts</div>
+          <div id="f6-artist">tashta x sickboyrostic</div>
+        </div>
+      </div>
+      <script>
+        (function () {
+          var T0 = 78.065, DUR = 12.737;
+          var tl = gsap.timeline({ paused: true, defaults: { immediateRender: false } });
+          tl.fromTo("#f6-title", { opacity: 0, filter: "blur(30px)", scale: 1.15 }, { opacity: 1, filter: "blur(0px)", scale: 1, duration: 1.8, ease: "power2.out" }, 0.3);
+          tl.fromTo("#f6-artist", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 1.0, ease: "power2.out" }, 1.2);
+          tl.fromTo("#f6-chip", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.6, ease: "back.out(2)" }, 1.8);
+          tl.fromTo("#f6-card", { y: -10 }, { y: 10, duration: 2.4, ease: "sine.inOut", repeat: 4, yoyo: true }, 0);
+          // soft neon flicker on the faint downbeats
+          [79.575, 82.57, 85.589].forEach(function (d) {
+            var t = d - T0;
+            tl.set("#f6-title", { opacity: 0.45 }, t);
+            tl.set("#f6-title", { opacity: 1 }, t + 0.06);
+            tl.set("#f6-title", { opacity: 0.6 }, t + 0.12);
+            tl.set("#f6-title", { opacity: 1 }, t + 0.17);
+          });
+          window.__timelines["06-f6"] = tl;
+          tl.seek(0);
+        })();
+      </script>
+    </template>
+  </body>
+</html>

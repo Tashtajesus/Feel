@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+        #fx-grain { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; opacity: 0.09; mix-blend-mode: screen; image-rendering: pixelated; }
+        #fx-scan { position: absolute; inset: 0; background: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0) 0px, rgba(0, 0, 0, 0) 3px, rgba(11, 6, 23, 0.22) 3px, rgba(11, 6, 23, 0.22) 4px); }
+      </style>
+      <div id="root" data-composition-id="fx" data-width="1080" data-height="1920">
+        <canvas data-layout-ignore id="fx-grain" width="360" height="640"></canvas>
+        <div data-layout-ignore id="fx-scan"></div>
+      </div>
+      <script>
+        (function () {
+          var DUR = 90.802, W = 360, H = 640, K = 8;
+          var ctx = document.getElementById("fx-grain").getContext("2d");
+          var seed = 77;
+          function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
+          var tiles = [];
+          for (var k = 0; k < K; k++) {
+            var img = ctx.createImageData(W, H);
+            for (var i = 0; i < W * H; i++) { var v = (rnd() * 255) | 0; img.data[i * 4] = v; img.data[i * 4 + 1] = v; img.data[i * 4 + 2] = v; img.data[i * 4 + 3] = 255; }
+            tiles.push(img);
+          }
+          var last = -1;
+          function draw(t) { var f = Math.floor(t * 15 + 1e-6) % K; if (f !== last) { ctx.putImageData(tiles[f], 0, 0); last = f; } }
+          var tl = gsap.timeline({ paused: true });
+          var drv = { t: 0 };
+          tl.to(drv, { t: DUR, duration: DUR, ease: "none", onUpdate: function () { draw(drv.t); } }, 0);
+          draw(0);
+          window.__timelines["fx"] = tl;
+          tl.seek(0);
+        })();
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "Unbounded"; src: url("assets/fonts/unbounded-latin-900-normal.woff2") format("woff2"); font-weight: 900; }
+        #root { position: absolute; inset: 0; overflow: hidden; }
+        #f5-black { position: absolute; inset: 0; background: #0B0617; opacity: 0; }
+        #f5-flash { position: absolute; inset: 0; background: #FFF3FB; opacity: 0; }
+        #f5-hearts { position: absolute; inset: 0; }
+        .f5-heart { position: absolute; top: 0; width: 60px; height: 54px; opacity: 0; }
+        #f5-title { position: absolute; left: 0; right: 0; top: 780px; height: 240px; display: flex; justify-content: center; }
+        .f5-l { position: relative; display: block; font-family: "Unbounded", sans-serif; font-weight: 900; font-size: 230px; line-height: 240px; letter-spacing: -0.04em; color: #FFF3FB; text-shadow: 0 0 24px rgba(255, 79, 180, 0.9), 0 0 70px rgba(255, 79, 180, 0.5); }
+      </style>
+      <div id="root" data-composition-id="05-f5" data-width="1080" data-height="1920">
+        <div id="f5-hearts"></div>
+        <div id="f5-title"></div>
+        <div id="f5-black"></div>
+        <div id="f5-flash"></div>
+      </div>
+      <script>
+        (function () {
+          var T0 = 66.061, DUR = 12.004;
+          var HIT = 66.595 - T0;
+          var title = document.getElementById("f5-title");
+          var L = [];
+          "firts".split("").forEach(function (c) { var s = document.createElement("div"); s.className = "f5-l"; s.textContent = c; title.appendChild(s); L.push(s); });
+          var HEART = '<svg viewBox="0 0 60 54" width="60" height="54"><path d="M30 52 C10 36 0 26 0 14 C0 6 6 0 14 0 C21 0 26 4 30 10 C34 4 39 0 46 0 C54 0 60 6 60 14 C60 26 50 36 30 52Z" fill="COL"/></svg>';
+          var HC = ["#FF4FB4", "#B9A3FF", "#4DF3FF", "#FF4FB4"];
+          var hearts = document.getElementById("f5-hearts");
+          var tl = gsap.timeline({ paused: true, defaults: { immediateRender: false } });
+
+          // hard stop: blackout, then flash + crash zoom back in on the roll
+          tl.set("#f5-black", { opacity: 1 }, 0);
+          tl.fromTo("#f5-flash", { opacity: 0.9 }, { opacity: 0, duration: 0.45, ease: "power2.out" }, HIT);
+          tl.to("#f5-black", { opacity: 0, duration: 0.25 }, HIT);
+          tl.fromTo("#f5-title", { scale: 2.3, filter: "blur(22px)" }, { scale: 1, filter: "blur(0px)", duration: 0.5, ease: "expo.out" }, HIT);
+
+          // hearts float up through the surge
+          for (var i = 0; i < 16; i++) {
+            var el = document.createElement("div");
+            el.className = "f5-heart";
+            el.innerHTML = HEART.replace("COL", HC[i % 4]);
+            hearts.appendChild(el);
+            var x = 70 + ((i * 263) % 900), st = HIT + 0.3 + (i % 8) * 0.55 + Math.floor(i / 8) * 0.25, sc = 0.5 + ((i * 37) % 10) / 10;
+            tl.fromTo(el, { x: x, y: 1700, opacity: 0, scale: sc, rotation: -15 }, { y: 380 + ((i * 97) % 300), rotation: 15, duration: 4.5, ease: "sine.out" }, st);
+            tl.to(el, { opacity: 0.85, duration: 0.5 }, st);
+            tl.to(el, { opacity: 0, duration: 1.2 }, st + 3.2);
+          }
+
+          // downbeat pulses
+          [67.57, 70.589].forEach(function (d) { tl.fromTo("#f5-title", { scale: 1.1 }, { scale: 1, duration: 0.45, ease: "power3.out", immediateRender: false }, d - T0); });
+
+          // decay: letters drift up and dissolve one by one as the track fades
+          L.forEach(function (l, i) {
+            tl.to(l, { y: -70, opacity: 0, filter: "blur(14px)", duration: 1.4, ease: "power2.in" }, 73.584 - T0 + i * 0.55);
+          });
+
+          window.__timelines["05-f5"] = tl;
+          tl.seek(0);
+        })();
+      </script>
+    </template>
+  </body>
+</html>
