@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "Unbounded"; src: url("assets/fonts/unbounded-latin-900-normal.woff2") format("woff2"); font-weight: 900; }
+        @font-face { font-family: "Space Mono"; src: url("assets/fonts/space-mono-latin-700-normal.woff2") format("woff2"); font-weight: 700; }
+        #root { position: absolute; inset: 0; overflow: hidden; }
+        #f2-orbit { position: absolute; left: 0; top: 360px; width: 1080px; height: 1080px; opacity: 0; }
+        #f2-orbit text { font-family: "Space Mono", monospace; font-weight: 700; font-size: 30px; fill: #FFF3FB; letter-spacing: 4px; }
+        #f2-title { position: absolute; left: 0; right: 0; top: 780px; height: 240px; }
+        #f2-title span { position: absolute; left: 0; right: 0; top: 0; text-align: center; font-family: "Unbounded", sans-serif; font-weight: 900; font-size: 230px; line-height: 240px; letter-spacing: -0.04em; }
+        #f2-title .m { color: #FFF3FB; text-shadow: 0 0 24px rgba(255, 79, 180, 0.9), 0 0 70px rgba(255, 79, 180, 0.5); }
+        #f2-title .gp { color: #FF4FB4; mix-blend-mode: screen; opacity: 0.55; }
+        #f2-title .gc { color: #4DF3FF; mix-blend-mode: screen; opacity: 0.55; }
+        #f2-title .sh { color: rgba(0, 0, 0, 0); text-shadow: none; background: linear-gradient(105deg, rgba(255, 255, 255, 0) 38%, rgba(255, 255, 255, 0.95) 50%, rgba(255, 220, 245, 0.6) 54%, rgba(255, 255, 255, 0) 64%); background-size: 300% 100%; background-position: 160% 0; -webkit-background-clip: text; background-clip: text; }
+        #f2-burst { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+        .f2-sp { position: absolute; left: 520px; top: 880px; width: 40px; height: 40px; opacity: 0; }
+      </style>
+      <div id="root" data-composition-id="02-f2" data-width="1080" data-height="1920">
+        <svg id="f2-orbit" viewBox="0 0 1080 1080">
+          <defs><path id="f2-circ" d="M540,80 a460,460 0 1,1 -0.1,0 z" /></defs>
+          <text><textPath href="#f2-circ" textLength="2880" lengthAdjust="spacing">TASHTA × SICKBOYROSTIK — TASHTA × SICKBOYROSTIK — TASHTA × SICKBOYROSTIK — </textPath></text>
+        </svg>
+        <div id="f2-burst"></div>
+        <div id="f2-title"><span data-layout-ignore class="gp" id="f2-gp">firts</span><span data-layout-ignore class="gc" id="f2-gc">firts</span><span data-layout-allow-occlusion class="m" id="f2-m">firts</span><span data-layout-ignore class="sh" id="f2-sh">firts</span></div>
+      </div>
+      <script>
+        (function () {
+          var T0 = 6.827, DUR = 11.238;
+          var SNARES = [7.546, 9.567, 9.776, 10.495, 10.867, 11.262, 13.096, 15.0, 15.557, 17.252, 17.995];
+          var DOWN = [7.593, 10.588, 13.56, 16.579];
+          var SP = '<svg viewBox="-20 -20 40 40" width="40" height="40"><path d="M0,-20 Q2.4,-2.4 20,0 Q2.4,2.4 0,20 Q-2.4,2.4 -20,0 Q-2.4,-2.4 0,-20Z" fill="COL"/></svg>';
+          var COLS = ["#FFF3FB", "#FF4FB4", "#4DF3FF"];
+          var burst = document.getElementById("f2-burst");
+          var tl = gsap.timeline({ paused: true, defaults: { immediateRender: false } });
+
+          tl.fromTo("#f2-title", { scale: 1 }, { scale: 0.95, duration: 0.7, ease: "sine.in" }, 0);
+          // crash zoom on the first snare of the surge
+          tl.fromTo("#f2-title", { scale: 1.6, filter: "blur(14px)" }, { scale: 1, filter: "blur(0px)", duration: 0.38, ease: "expo.out", immediateRender: false }, SNARES[0] - T0);
+          tl.fromTo("#f2-orbit", { opacity: 0, scale: 0.85 }, { opacity: 0.8, scale: 1, duration: 0.6, ease: "power3.out" }, SNARES[0] - T0);
+          tl.fromTo("#f2-orbit", { rotation: 0 }, { rotation: -100, duration: DUR, ease: "none" }, 0);
+
+          SNARES.forEach(function (s, i) {
+            var t = s - T0, d = 18 + (i % 3) * 10;
+            if (i > 0) tl.fromTo("#f2-m", { scale: 1.08 }, { scale: 1, duration: 0.3, ease: "power2.out" }, t);
+            tl.fromTo("#f2-gp", { x: -d, y: (i % 2 ? 6 : -6), opacity: 0.95 }, { x: -3, y: 0, opacity: 0.55, duration: 0.34, ease: "power3.out" }, t);
+            tl.fromTo("#f2-gc", { x: d, y: (i % 2 ? -6 : 6), opacity: 0.95 }, { x: 3, y: 0, opacity: 0.55, duration: 0.34, ease: "power3.out" }, t);
+          });
+
+          DOWN.forEach(function (db, b) {
+            for (var k = 0; k < 10; k++) {
+              var el = document.createElement("div");
+              el.className = "f2-sp";
+              el.innerHTML = SP.replace("COL", COLS[(k + b) % 3]);
+              burst.appendChild(el);
+              var ang = (k / 10) * 6.283 + b * 0.4, dist = 360 + (k % 3) * 90;
+              tl.fromTo(el, { x: 0, y: 0, scale: 0.2, opacity: 1, rotation: 0 },
+                { x: Math.cos(ang) * dist, y: Math.sin(ang) * dist, scale: 1 + (k % 2) * 0.6, rotation: 90, duration: 0.9, ease: "expo.out" }, db - T0);
+              tl.to(el, { opacity: 0, scale: 0.1, duration: 0.4, ease: "power2.in" }, db - T0 + 0.55);
+            }
+          });
+
+          tl.fromTo("#f2-title", { rotationY: -9, rotationX: 4, transformPerspective: 1000 }, { rotationY: 9, rotationX: -4, duration: DUR, ease: "sine.inOut" }, 0);
+          DOWN.forEach(function (d) { tl.fromTo("#f2-sh", { backgroundPosition: "160% 0" }, { backgroundPosition: "-60% 0", duration: 0.9, ease: "power2.inOut" }, d - T0 + 0.05); });
+          window.__timelines["02-f2"] = tl;
+          tl.seek(0);
+        })();
+      </script>
+    </template>
+  </body>
+</html>
