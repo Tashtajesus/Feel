@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "Space Mono"; src: url("assets/fonts/space-mono-latin-400-normal.woff2") format("woff2"); font-weight: 400; }
+        @font-face { font-family: "Space Mono"; src: url("assets/fonts/space-mono-latin-700-normal.woff2") format("woff2"); font-weight: 700; }
+        #root { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+        #hud-all { position: absolute; inset: 0; opacity: 0; }
+        .hud-corner { position: absolute; width: 56px; height: 56px; border-color: rgba(255, 243, 251, 0.55); border-style: solid; border-width: 0; }
+        #hud-c1 { left: 60px; top: 250px; border-left-width: 2px; border-top-width: 2px; }
+        #hud-c2 { right: 60px; top: 250px; border-right-width: 2px; border-top-width: 2px; }
+        #hud-c3 { left: 60px; top: 1530px; border-left-width: 2px; border-bottom-width: 2px; }
+        #hud-c4 { right: 60px; top: 1530px; border-right-width: 2px; border-bottom-width: 2px; }
+        .hud-side { position: absolute; top: 900px; width: 900px; height: 30px; margin-top: -15px; text-align: center; font-family: "Space Mono", monospace; font-weight: 400; font-size: 18px; letter-spacing: 0.5em; color: rgba(255, 243, 251, 0.5); white-space: nowrap; }
+        #hud-left { left: -405px; }
+        #hud-right { right: -405px; }
+        #hud-orbit { position: absolute; left: 90px; top: 450px; width: 900px; height: 900px; }
+        .hud-tag { position: absolute; font-family: "Space Mono", monospace; font-weight: 700; font-size: 18px; letter-spacing: 0.24em; color: rgba(77, 243, 255, 0.85); }
+        #hud-tl { left: 130px; top: 262px; }
+        #hud-tr { right: 130px; top: 262px; text-align: right; color: rgba(255, 79, 180, 0.9); }
+        #hud-bl { left: 130px; top: 1566px; color: rgba(255, 243, 251, 0.6); }
+        #hud-br { right: 130px; top: 1566px; text-align: right; color: rgba(255, 243, 251, 0.6); }
+        #hud-rec { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #FF4FB4; margin-right: 12px; box-shadow: 0 0 10px #FF4FB4; }
+      </style>
+      <div id="root" data-composition-id="hud" data-width="1080" data-height="1920">
+        <div id="hud-all">
+          <svg data-layout-ignore id="hud-orbit" viewBox="-450 -450 900 900">
+            <g id="hud-ring1"><circle r="440" fill="none" stroke="rgba(255,243,251,0.22)" stroke-width="1.5" stroke-dasharray="2 14" /></g>
+            <g id="hud-ring2"><circle r="410" fill="none" stroke="rgba(77,243,255,0.35)" stroke-width="2" stroke-dasharray="120 40 6 40" /></g>
+            <g id="hud-ticks"></g>
+          </svg>
+          <div class="hud-corner" id="hud-c1"></div><div class="hud-corner" id="hud-c2"></div>
+          <div class="hud-corner" id="hud-c3"></div><div class="hud-corner" id="hud-c4"></div>
+          <div class="hud-side" id="hud-left" data-layout-allow-overflow>TASHTA × SICKBOYROSTIK — FIRTS — 2026</div>
+          <div class="hud-side" id="hud-right" data-layout-allow-overflow>81 BPM — 4/4 — STEREO 44.1 KHZ</div>
+          <div class="hud-tag" id="hud-tl"><span id="hud-rec"></span>LIVE</div>
+          <div class="hud-tag" id="hud-tr">TRK 01</div>
+          <div class="hud-tag" id="hud-bl">FIRTS.WAV</div>
+          <div class="hud-tag" id="hud-br" data-layout-allow-overflow><span id="hud-tc">00:00:00</span></div>
+        </div>
+      </div>
+      <script>
+        (function () {
+          var DUR = 90.802, NS = "http://www.w3.org/2000/svg";
+          var ticks = document.getElementById("hud-ticks");
+          for (var i = 0; i < 48; i++) {
+            var a = (i / 48) * Math.PI * 2, l = i % 4 === 0 ? 18 : 8;
+            var ln = document.createElementNS(NS, "line");
+            ln.setAttribute("x1", (Math.cos(a) * 452).toFixed(1)); ln.setAttribute("y1", (Math.sin(a) * 452).toFixed(1));
+            ln.setAttribute("x2", (Math.cos(a) * (452 - l)).toFixed(1)); ln.setAttribute("y2", (Math.sin(a) * (452 - l)).toFixed(1));
+            ln.setAttribute("stroke", i % 4 === 0 ? "rgba(255,79,180,0.7)" : "rgba(255,243,251,0.3)");
+            ln.setAttribute("stroke-width", "2");
+            ticks.appendChild(ln);
+          }
+          document.getElementById("hud-left").style.transform = "rotate(-90deg)";
+          document.getElementById("hud-right").style.transform = "rotate(90deg)";
+          var tc = document.getElementById("hud-tc");
+          var tl = gsap.timeline({ paused: true, defaults: { immediateRender: false } });
+          var drv = { t: 0 };
+          tl.to(drv, { t: DUR, duration: DUR, ease: "none", onUpdate: function () {
+            var f = Math.floor(drv.t * 30), s = Math.floor(drv.t);
+            tc.textContent = ("0" + Math.floor(s / 60)).slice(-2) + ":" + ("0" + (s % 60)).slice(-2) + ":" + ("0" + (f % 30)).slice(-2);
+          } }, 0);
+          tl.fromTo("#hud-all", { opacity: 0 }, { opacity: 1, duration: 1.2, ease: "power2.out" }, 0.8);
+          tl.fromTo(".hud-corner", { scale: 1.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.6, ease: "expo.out", stagger: 0.08 }, 0.8);
+          tl.fromTo("#hud-ring1", { rotation: 0 }, { rotation: 90, duration: DUR, ease: "none", svgOrigin: "0 0" }, 0);
+          tl.fromTo("#hud-ring2", { rotation: 0 }, { rotation: -160, duration: DUR, ease: "none", svgOrigin: "0 0" }, 0);
+          tl.fromTo("#hud-ticks", { rotation: 0 }, { rotation: 45, duration: DUR, ease: "none", svgOrigin: "0 0" }, 0);
+          // REC dot blinks every bar
+          [1.579, 4.574, 7.593, 10.588, 13.56, 16.579, 19.574, 22.57, 25.588, 28.561, 31.579, 34.551, 37.547, 40.565, 43.561, 46.579, 49.575, 52.57, 55.565, 58.561, 61.556, 64.575, 67.57, 70.589, 73.584, 76.579, 79.575, 82.57, 85.589].forEach(function (d) {
+            tl.fromTo("#hud-rec", { opacity: 0.15 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, d);
+          });
+          // the HUD steps back during the blackout and fades out at the end card
+          tl.to("#hud-all", { opacity: 0, duration: 0.1 }, 66.061);
+          tl.to("#hud-all", { opacity: 1, duration: 0.6 }, 66.7);
+          tl.to("#hud-all", { opacity: 0.35, duration: 2 }, 78.5);
+          window.__timelines["hud"] = tl;
+          tl.seek(0);
+        })();
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,201 @@
+<!doctype html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "Space Mono"; src: url("assets/fonts/space-mono-latin-700-normal.woff2") format("woff2"); font-weight: 700; }
+        @font-face { font-family: "Space Mono"; src: url("assets/fonts/space-mono-latin-400-normal.woff2") format("woff2"); font-weight: 400; }
+        #root { position: absolute; inset: 0; overflow: hidden; background: #0B0617; }
+        #world-sky {
+          position: absolute; inset: 0;
+          background:
+            radial-gradient(120% 60% at 50% 0%, #2A0F4A 0%, rgba(42, 15, 74, 0) 70%),
+            radial-gradient(90% 45% at 50% 100%, rgba(77, 243, 255, 0.10) 0%, rgba(77, 243, 255, 0) 70%),
+            linear-gradient(180deg, #160A2C 0%, #0B0617 55%, #0D0820 100%);
+        }
+        #world-cam { position: absolute; inset: 0; transform-origin: 540px 900px; }
+        #world-stars, #world-ring, #world-bokeh { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+        #world-bokeh { filter: blur(10px); mix-blend-mode: screen; }
+        #world-vig { position: absolute; inset: 0; background: radial-gradient(75% 55% at 50% 47%, rgba(11, 6, 23, 0) 55%, rgba(11, 6, 23, 0.78) 100%); }
+        #world-head {
+          position: absolute; left: 0; right: 0; top: 290px; text-align: center;
+          font-family: "Space Mono", monospace; font-weight: 700; font-size: 26px;
+          letter-spacing: 0.32em; color: #FFF3FB; opacity: 0;
+          text-shadow: 0 0 18px rgba(255, 79, 180, 0.7);
+        }
+        #world-player { position: absolute; left: 110px; right: 110px; top: 1490px; height: 60px; opacity: 0; }
+        #world-track { position: absolute; left: 0; right: 0; top: 0; height: 6px; border-radius: 3px; background: rgba(185, 163, 255, 0.22); }
+        #world-fill { position: absolute; left: 0; top: 0; height: 6px; width: 0; border-radius: 3px; background: linear-gradient(90deg, #4DF3FF, #FF4FB4); box-shadow: 0 0 14px rgba(255, 79, 180, 0.8); }
+        #world-knob { position: absolute; top: -7px; left: -10px; width: 20px; height: 20px; border-radius: 50%; background: #FFF3FB; box-shadow: 0 0 16px #FF4FB4, 0 0 4px #fff; }
+        .world-time { position: absolute; top: 22px; font-family: "Space Mono", monospace; font-weight: 400; font-size: 24px; color: rgba(255, 243, 251, 0.75); letter-spacing: 0.08em; }
+        #world-tnow { left: 0; }
+        #world-tend { right: 0; }
+      </style>
+
+      <div id="root" data-composition-id="world" data-width="1080" data-height="1920">
+        <div id="world-sky"></div>
+        <div id="world-cam">
+          <canvas data-layout-ignore id="world-stars" width="1080" height="1920"></canvas>
+          <canvas data-layout-ignore id="world-bokeh" width="540" height="960"></canvas>
+          <canvas data-layout-ignore id="world-ring" width="1080" height="1920"></canvas>
+        </div>
+        <div data-layout-ignore id="world-vig"></div>
+        <div id="world-head">TASHTA × SICKBOYROSTIK</div>
+        <div id="world-player">
+          <div id="world-track"><div id="world-fill"></div><div id="world-knob"></div></div>
+          <div class="world-time" id="world-tnow">0:00</div>
+          <div class="world-time" id="world-tend">1:30</div>
+        </div>
+      </div>
+
+      <script>
+        (function () {
+          var DUR = 90.802, CX = 540, CY = 900;
+          var A = window.NC_AUDIO;
+          var stars = document.getElementById("world-stars").getContext("2d");
+          var ring = document.getElementById("world-ring").getContext("2d");
+          var fill = document.getElementById("world-fill");
+          var knob = document.getElementById("world-knob");
+          var tnow = document.getElementById("world-tnow");
+          var BAR_W = 1080 - 220;
+
+          function rng(seed) { return function () { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; var t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+          var r = rng(1409);
+          var STARS = [];
+          for (var i = 0; i < 260; i++) STARS.push({ x: r() * 1080, y: r() * 1920, s: 0.6 + r() * r() * 2.6, ph: r() * 6.283, sp: 0.6 + r() * 2.2, v: 4 + r() * 14 });
+          var SPARK = [];
+          for (var j = 0; j < 14; j++) SPARK.push({ x: 60 + r() * 960, y: 180 + r() * 1560, s: 10 + r() * 18, ph: r() * 6.283, sp: 0.5 + r() * 0.9, c: j % 3 });
+          var SPARK_C = ["#FFF3FB", "#FF4FB4", "#4DF3FF"];
+          var bokeh = document.getElementById("world-bokeh").getContext("2d");
+          var BOK = [], BOK_C = ["255,79,180", "77,243,255", "185,163,255"];
+          for (var b = 0; b < 22; b++) BOK.push({ x: r() * 540, y: r() * 960, rad: 14 + r() * 58, v: 3 + r() * 9, ph: r() * 6.283, c: b % 3, z: 0.4 + r() * 0.6 });
+
+          function frameAt(t) { return Math.max(0, Math.min(A.frames - 1, Math.floor(t * A.fps + 1e-6))); }
+          function band(f, p) { var i = Math.floor(p), k = p - i, o = f * 16; var a = A.b[o + Math.min(15, i)], b = A.b[o + Math.min(15, i + 1)]; return a + (b - a) * k; }
+
+          function sparkle(ctx, x, y, s, rot) {
+            ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.beginPath();
+            for (var q = 0; q < 4; q++) { ctx.rotate(Math.PI / 2); ctx.moveTo(0, 0); ctx.quadraticCurveTo(s * 0.12, s * 0.12, 0, s); ctx.quadraticCurveTo(-s * 0.12, s * 0.12, 0, 0); }
+            ctx.fill(); ctx.restore();
+          }
+
+          function draw(t) {
+            var f = frameAt(t);
+            var bass = (A.b[f * 16] + A.b[f * 16 + 1] + A.b[f * 16 + 2]) / 3;
+            var lvl = A.rms[f];
+
+            // stars + sparkles
+            stars.clearRect(0, 0, 1080, 1920);
+            for (var i = 0; i < STARS.length; i++) {
+              var s = STARS[i];
+              var y = ((s.y - t * s.v) % 1920 + 1920) % 1920;
+              var a = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * s.sp + s.ph));
+              stars.globalAlpha = a * (0.55 + 0.45 * lvl);
+              stars.fillStyle = i % 9 === 0 ? "#FFB8E0" : i % 7 === 0 ? "#B8FBFF" : "#FFF3FB";
+              stars.beginPath(); stars.arc(s.x, y, s.s, 0, 6.283); stars.fill();
+            }
+            for (var k = 0; k < SPARK.length; k++) {
+              var p = SPARK[k];
+              var tw = Math.max(0, Math.sin(t * p.sp + p.ph));
+              stars.globalAlpha = tw * 0.9;
+              stars.fillStyle = SPARK_C[p.c];
+              sparkle(stars, p.x, p.y, p.s * (0.4 + 0.6 * tw) * (1 + bass * 0.3), t * 0.3 + p.ph);
+            }
+            stars.globalAlpha = 1;
+
+            // depth-of-field bokeh, drifting at its own parallax
+            bokeh.clearRect(0, 0, 540, 960);
+            for (var q = 0; q < BOK.length; q++) {
+              var o = BOK[q];
+              var by = ((o.y - t * o.v * o.z) % 1060 + 1060) % 1060 - 50;
+              var bx = o.x + Math.sin(t * 0.3 + o.ph) * 18 * o.z;
+              var ba = (0.10 + 0.22 * o.z) * (0.6 + 0.6 * bass);
+              var g = bokeh.createRadialGradient(bx, by, 0, bx, by, o.rad);
+              g.addColorStop(0, "rgba(" + BOK_C[o.c] + "," + ba.toFixed(3) + ")");
+              g.addColorStop(0.7, "rgba(" + BOK_C[o.c] + "," + (ba * 0.6).toFixed(3) + ")");
+              g.addColorStop(1, "rgba(" + BOK_C[o.c] + ",0)");
+              bokeh.fillStyle = g; bokeh.beginPath(); bokeh.arc(bx, by, o.rad, 0, 6.283); bokeh.fill();
+            }
+
+            // neon ring
+            ring.clearRect(0, 0, 1080, 1920);
+            var R = 300 * (1 + 0.07 * bass);
+            var glow = ring.createRadialGradient(CX, CY, R * 0.2, CX, CY, R * 1.9);
+            glow.addColorStop(0, "rgba(255,79,180," + (0.10 + 0.22 * bass).toFixed(3) + ")");
+            glow.addColorStop(0.55, "rgba(185,163,255," + (0.05 + 0.10 * lvl).toFixed(3) + ")");
+            glow.addColorStop(1, "rgba(11,6,23,0)");
+            ring.fillStyle = glow; ring.fillRect(0, 0, 1080, 1920);
+            var core = ring.createRadialGradient(CX, CY, 0, CX, CY, R);
+            core.addColorStop(0, "rgba(11,6,23,0.55)"); core.addColorStop(1, "rgba(11,6,23,0)");
+            ring.fillStyle = core; ring.beginPath(); ring.arc(CX, CY, R, 0, 6.283); ring.fill();
+
+            ring.save();
+            ring.globalCompositeOperation = "lighter";
+            for (var ry = 0; ry < 10; ry++) {
+              var ra = t * 0.07 + ry * 0.628, rw = 0.05 + 0.03 * (ry % 3);
+              var rg = ring.createRadialGradient(CX, CY, R, CX, CY, 1100);
+              rg.addColorStop(0, "rgba(255,190,235," + (0.05 + 0.13 * bass).toFixed(3) + ")");
+              rg.addColorStop(1, "rgba(255,190,235,0)");
+              ring.fillStyle = rg;
+              ring.beginPath(); ring.moveTo(CX, CY);
+              ring.arc(CX, CY, 1100, ra - rw, ra + rw); ring.closePath(); ring.fill();
+            }
+            ring.restore();
+
+            ring.lineCap = "round";
+            ring.strokeStyle = "rgba(185,163,255,0.55)"; ring.lineWidth = 2;
+            ring.beginPath(); ring.arc(CX, CY, R - 4, 0, 6.283); ring.stroke();
+
+            var N = 120, rot = t * 0.12;
+            for (var pass = 0; pass < 2; pass++) {
+              ring.lineWidth = pass === 0 ? 16 : 6;
+              ring.globalAlpha = pass === 0 ? 0.16 : 0.95;
+              for (var n = 0; n < N; n++) {
+                var m = n < N / 2 ? n : N - 1 - n;
+                var amp = band(f, (m / (N / 2 - 1)) * 15);
+                var L = 10 + amp * amp * 170 * (0.55 + 0.45 * lvl);
+                var ang = rot + (n / N) * 6.283 - Math.PI / 2;
+                var mix = 0.5 + 0.5 * Math.cos(ang - rot * 2);
+                var cr = Math.round(255 * mix + 77 * (1 - mix)), cg = Math.round(79 * mix + 243 * (1 - mix)), cb = 255 - Math.round(75 * mix);
+                ring.strokeStyle = "rgb(" + cr + "," + cg + "," + cb + ")";
+                var c = Math.cos(ang), sn = Math.sin(ang);
+                ring.beginPath();
+                ring.moveTo(CX + c * (R + 10), CY + sn * (R + 10));
+                ring.lineTo(CX + c * (R + 10 + L), CY + sn * (R + 10 + L));
+                ring.stroke();
+              }
+            }
+            ring.globalAlpha = 1;
+
+            // player
+            var prog = Math.min(1, t / DUR);
+            fill.style.width = (prog * BAR_W).toFixed(1) + "px";
+            knob.style.transform = "translateX(" + (prog * BAR_W).toFixed(1) + "px)";
+            var sec = Math.floor(t);
+            tnow.textContent = Math.floor(sec / 60) + ":" + ("0" + (sec % 60)).slice(-2);
+          }
+
+          var tl = gsap.timeline({ paused: true, defaults: { immediateRender: false } });
+          var drv = { t: 0 };
+          tl.to(drv, { t: DUR, duration: DUR, ease: "none", onUpdate: function () { draw(drv.t); } }, 0);
+          // virtual camera: slow pull-back intro, punches on the surges, drift and roll through the song
+          tl.fromTo("#world-cam", { scale: 1.14, rotation: -2 }, { scale: 1, rotation: 0, duration: 6.8, ease: "power2.inOut" }, 0);
+          tl.fromTo("#world-cam", { scale: 1.08 }, { scale: 1.0, duration: 1.2, ease: "expo.out", immediateRender: false }, 7.546);
+          tl.to("#world-cam", { scale: 1.06, rotation: 2.5, y: -30, duration: 23.9, ease: "sine.inOut" }, 18.065);
+          tl.to("#world-cam", { scale: 1.0, rotation: 0, y: 0, duration: 1.4, ease: "expo.out" }, 43.561);
+          tl.to("#world-cam", { scale: 1.07, rotation: -2, duration: 21, ease: "sine.inOut" }, 45);
+          tl.to("#world-cam", { scale: 1.18, rotation: 0, duration: 0.5, ease: "power2.in" }, 66.061);
+          tl.to("#world-cam", { scale: 1, duration: 0.9, ease: "expo.out" }, 66.595);
+          tl.to("#world-cam", { scale: 1.1, y: 20, duration: 24, ease: "sine.inOut" }, 67.5);
+          tl.fromTo("#world-player", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 1.2, ease: "power2.out" }, 0.6);
+          tl.fromTo("#world-head", { opacity: 0 }, { opacity: 0.85, duration: 0.4 }, 6.827);
+          tl.to("#world-head", { opacity: 0, duration: 0.6 }, 77.4);
+          draw(0);
+          window.__timelines["world"] = tl;
+          tl.seek(0);
+        })();
+      </script>
+    </template>
+  </body>
+</html>
