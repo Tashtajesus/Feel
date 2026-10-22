@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f5f2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111111" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Feel — счётчик калорий</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="app">
+    <!-- Сегодня -->
+    <section class="view" id="view-today">
+      <header class="top">
+        <h1 class="brand">Feel</h1>
+        <div class="day-nav">
+          <button class="icon-btn" id="prev-day" aria-label="Предыдущий день">‹</button>
+          <button class="day-label" id="day-label">Сегодня</button>
+          <button class="icon-btn" id="next-day" aria-label="Следующий день">›</button>
+        </div>
+      </header>
+
+      <div class="card hero">
+        <div class="hero-text">
+          <div class="hero-num" id="kcal-left">0</div>
+          <div class="muted" id="kcal-left-label">ккал осталось</div>
+          <div class="hero-sub"><span id="kcal-eaten">0</span> из <span id="kcal-goal">0</span> ккал</div>
+        </div>
+        <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="ring-bg" cx="60" cy="60" r="50"/>
+          <circle class="ring-fg" id="kcal-ring" cx="60" cy="60" r="50"/>
+          <text x="60" y="68" text-anchor="middle" class="ring-icon">🔥</text>
+        </svg>
+      </div>
+
+      <div class="macros">
+        <div class="card macro" data-macro="p">
+          <div class="macro-val"><b id="p-left">0</b> г</div>
+          <div class="muted small">белков осталось</div>
+          <div class="bar"><i id="p-bar" style="--c: var(--protein)"></i></div>
+        </div>
+        <div class="card macro" data-macro="c">
+          <div class="macro-val"><b id="c-left">0</b> г</div>
+          <div class="muted small">углеводов осталось</div>
+          <div class="bar"><i id="c-bar" style="--c: var(--carbs)"></i></div>
+        </div>
+        <div class="card macro" data-macro="f">
+          <div class="macro-val"><b id="f-left">0</b> г</div>
+          <div class="muted small">жиров осталось</div>
+          <div class="bar"><i id="f-bar" style="--c: var(--fat)"></i></div>
+        </div>
+      </div>
+
+      <div class="card water">
+        <div>
+          <div class="water-title">💧 Вода</div>
+          <div class="muted small"><span id="water-ml">0</span> / <span id="water-goal">2000</span> мл</div>
+        </div>
+        <div class="water-actions">
+          <button class="pill-btn" id="water-minus" aria-label="Убрать стакан">−</button>
+          <button class="pill-btn" id="water-plus" aria-label="Добавить стакан 250 мл">+250</button>
+        </div>
+      </div>
+
+      <h2 class="section-title">Съедено</h2>
+      <div id="meals"></div>
+    </section>
+
+    <!-- Статистика -->
+    <section class="view" id="view-stats" hidden>
+      <header class="top"><h1 class="brand">Прогресс</h1></header>
+      <div class="card">
+        <div class="card-head"><b>Калории за 7 дней</b><span class="muted small" id="avg-kcal"></span></div>
+        <div id="week-chart" class="chart"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><b>Вес</b><span class="muted small" id="weight-delta"></span></div>
+        <div id="weight-chart" class="chart"></div>
+        <form class="row" id="weight-form">
+          <input type="number" step="0.1" min="20" max="400" inputmode="decimal" id="weight-input" placeholder="Вес сегодня, кг" required>
+          <button class="btn" type="submit">Записать</button>
+        </form>
+      </div>
+      <div class="card">
+        <div class="card-head"><b>Серия</b></div>
+        <p class="streak"><span id="streak">0</span> дн. подряд с записями 🔥</p>
+      </div>
+    </section>
+
+    <!-- Профиль -->
+    <section class="view" id="view-profile" hidden>
+      <header class="top"><h1 class="brand">Профиль</h1></header>
+      <form class="card form" id="profile-form">
+        <label>Пол
+          <select name="sex"><option value="m">Мужской</option><option value="f">Женский</option></select>
+        </label>
+        <label>Возраст<input name="age" type="number" min="12" max="100" inputmode="numeric" required></label>
+        <label>Рост, см<input name="height" type="number" min="100" max="250" inputmode="numeric" required></label>
+        <label>Вес, кг<input name="weight" type="number" step="0.1" min="30" max="400" inputmode="decimal" required></label>
+        <label>Активность
+          <select name="activity">
+            <option value="1.2">Сидячий образ жизни</option>
+            <option value="1.375">1–3 тренировки в неделю</option>
+            <option value="1.55">3–5 тренировок в неделю</option>
+            <option value="1.725">6–7 тренировок в неделю</option>
+            <option value="1.9">Физическая работа + спорт</option>
+          </select>
+        </label>
+        <label>Цель
+          <select name="goal">
+            <option value="lose">Похудеть</option>
+            <option value="keep">Поддерживать вес</option>
+            <option value="gain">Набрать массу</option>
+          </select>
+        </label>
+        <button class="btn" type="submit">Рассчитать норму</button>
+      </form>
+      <form class="card form" id="targets-form">
+        <div class="card-head"><b>Дневная норма</b><span class="muted small">можно изменить вручную</span></div>
+        <label>Калории<input name="kcal" type="number" min="800" max="6000" inputmode="numeric" required></label>
+        <div class="grid3">
+          <label>Белки, г<input name="p" type="number" min="0" max="500" inputmode="numeric" required></label>
+          <label>Жиры, г<input name="f" type="number" min="0" max="400" inputmode="numeric" required></label>
+          <label>Углеводы, г<input name="c" type="number" min="0" max="900" inputmode="numeric" required></label>
+        </div>
+        <label>Вода, мл<input name="water" type="number" min="500" max="6000" step="250" inputmode="numeric" required></label>
+        <button class="btn" type="submit">Сохранить</button>
+      </form>
+      <div class="card form">
+        <div class="card-head"><b>Данные</b></div>
+        <div class="row">
+          <button class="btn ghost" id="export-btn" type="button">Экспорт</button>
+          <label class="btn ghost file-btn">Импорт<input type="file" id="import-input" accept="application/json" hidden></label>
+        </div>
+        <p class="muted small">Все записи хранятся только в этом браузере.</p>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button class="tab active" data-view="today"><span>🏠</span>Сегодня</button>
+    <button class="tab" data-view="stats"><span>📈</span>Прогресс</button>
+    <button class="tab" data-view="profile"><span>⚙️</span>Профиль</button>
+    <button class="fab" id="fab" aria-label="Добавить еду">+</button>
+  </nav>
+
+  <!-- Меню добавления -->
+  <div class="sheet-backdrop" id="add-menu" hidden>
+    <div class="sheet">
+      <div class="sheet-grip"></div>
+      <h3>Добавить еду</h3>
+      <div class="add-grid">
+        <label class="add-tile">
+          <span class="add-icon">📸</span>Сфотографировать
+          <input type="file" accept="image/*" capture="environment" id="camera-input" hidden>
+        </label>
+        <label class="add-tile">
+          <span class="add-icon">🖼️</span>Из галереи
+          <input type="file" accept="image/*" id="gallery-input" hidden>
+        </label>
+        <button class="add-tile" id="open-search"><span class="add-icon">🔎</span>База продуктов</button>
+        <button class="add-tile" id="open-barcode"><span class="add-icon">▥</span>Штрихкод</button>
+        <button class="add-tile wide" id="open-manual"><span class="add-icon">✍️</span>Ввести вручную</button>
+      </div>
+      <label class="meal-pick">Приём пищи
+        <select id="meal-select">
+          <option value="breakfast">Завтрак</option>
+          <option value="lunch">Обед</option>
+          <option value="dinner">Ужин</option>
+          <option value="snack">Перекус</option>
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <!-- Анализ фото -->
+  <div class="sheet-backdrop" id="photo-sheet" hidden>
+    <div class="sheet tall">
+      <div class="sheet-grip"></div>
+      <div class="photo-wrap"><img id="photo-preview" alt="Фото еды"><div class="scan" id="scan-overlay"></div></div>
+      <div id="photo-status" class="photo-status"></div>
+      <div class="row" id="photo-hint-row">
+        <input id="photo-hint" placeholder="Уточнение (необязательно): напр. «без сахара, 2 яйца»">
+        <button class="btn ghost" id="reanalyze">↻</button>
+      </div>
+      <div id="photo-items"></div>
+      <div class="photo-total" id="photo-total"></div>
+      <div class="row">
+        <button class="btn ghost" data-close>Отмена</button>
+        <button class="btn" id="photo-save" disabled>Добавить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Поиск по базе -->
+  <div class="sheet-backdrop" id="search-sheet" hidden>
+    <div class="sheet tall">
+      <div class="sheet-grip"></div>
+      <input type="search" id="search-input" placeholder="Гречка, творог, Snickers…" autocomplete="off">
+      <div class="chips" id="group-chips"></div>
+      <div id="search-results" class="list"></div>
+      <button class="btn ghost" id="search-online">Искать в мировой базе Open Food Facts</button>
+    </div>
+  </div>
+
+  <!-- Порция выбранного продукта -->
+  <div class="sheet-backdrop" id="portion-sheet" hidden>
+    <div class="sheet">
+      <div class="sheet-grip"></div>
+      <h3 id="portion-name"></h3>
+      <p class="muted small" id="portion-per100"></p>
+      <div class="portion-input">
+        <button class="pill-btn" data-step="-10">−</button>
+        <input type="number" id="portion-grams" min="1" max="5000" inputmode="decimal" value="100">
+        <span>г</span>
+        <button class="pill-btn" data-step="10">+</button>
+      </div>
+      <div class="chips" id="portion-presets"></div>
+      <div class="portion-result" id="portion-result"></div>
+      <div class="row">
+        <button class="btn ghost" data-close>Отмена</button>
+        <button class="btn" id="portion-save">Добавить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Штрихкод -->
+  <div class="sheet-backdrop" id="barcode-sheet" hidden>
+    <div class="sheet">
+      <div class="sheet-grip"></div>
+      <h3>Штрихкод</h3>
+      <video id="barcode-video" playsinline muted hidden></video>
+      <p class="muted small" id="barcode-status"></p>
+      <form class="row" id="barcode-form">
+        <input id="barcode-input" inputmode="numeric" pattern="[0-9]{6,14}" placeholder="Цифры под штрихкодом" required>
+        <button class="btn" type="submit">Найти</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Ручной ввод -->
+  <div class="sheet-backdrop" id="manual-sheet" hidden>
+    <div class="sheet">
+      <div class="sheet-grip"></div>
+      <h3>Ввести вручную</h3>
+      <form class="form" id="manual-form">
+        <label>Название<input name="name" required maxlength="80"></label>
+        <div class="grid2">
+          <label>Калории (на порцию)<input name="kcal" type="number" min="0" step="1" inputmode="numeric" required></label>
+          <label>Вес, г<input name="grams" type="number" min="0" step="1" inputmode="numeric" placeholder="необязательно"></label>
+        </div>
+        <div class="grid3">
+          <label>Белки, г<input name="p" type="number" min="0" step="0.1" inputmode="decimal" value="0"></label>
+          <label>Жиры, г<input name="f" type="number" min="0" step="0.1" inputmode="decimal" value="0"></label>
+          <label>Углев., г<input name="c" type="number" min="0" step="0.1" inputmode="decimal" value="0"></label>
+        </div>
+        <div class="row">
+          <button class="btn ghost" type="button" data-close>Отмена</button>
+          <button class="btn" type="submit">Добавить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="foods.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "feel-calories",
+  "version": "1.0.0",
+  "description": "Счётчик калорий по фото и базе продуктов",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.1.0"
+  },
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  }
+}
