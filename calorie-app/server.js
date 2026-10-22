@@ -7,6 +7,27 @@ import Anthropic from "@anthropic-ai/sdk";
 const PORT = Number(process.env.PORT) || 3000;
 const PUBLIC_DIR = join(fileURLToPath(new URL(".", import.meta.url)), "public");
 const MAX_BODY = 8 * 1024 * 1024;
+// Необязательный код доступа: если задан, анализ фото работает только для тех, кто его знает.
+const ACCESS_CODE = process.env.ACCESS_CODE || "";
+// Не больше N распознаваний в час с одного IP, чтобы публичный адрес не съел баланс API.
+const HOURLY_LIMIT = Number(process.env.HOURLY_LIMIT) || 60;
+const usage = new Map();
+
+function overLimit(ip) {
+  const now = Date.now();
+  const recent = (usage.get(ip) || []).filter((t) => now - t < 3600_000);
+  if (recent.length >= HOURLY_LIMIT) {
+    usage.set(ip, recent);
+    return true;
+  }
+  recent.push(now);
+  usage.set(ip, recent);
+  return false;
+}
+
+function clientIp(req) {
+  return String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").split(",")[0].trim();
+}
 
 const client = new Anthropic();
 
@@ -120,7 +141,14 @@ async function serveStatic(req, res) {
 }
 
 const server = http.createServer(async (req, res) => {
+  if (req.url === "/healthz") return sendJson(res, 200, { ok: true });
   if (req.method === "POST" && req.url === "/api/analyze") {
+    if (ACCESS_CODE && req.headers["x-access-code"] !== ACCESS_CODE) {
+      return sendJson(res, 401, { error: "Неверный код доступа", needCode: true });
+    }
+    if (overLimit(clientIp(req))) {
+      return sendJson(res, 429, { error: "Лимит распознаваний на этот час исчерпан, попробуйте позже" });
+    }
     try {
       const { image, mediaType, hint } = await readJson(req);
       if (typeof image !== "string" || !/^image\/(jpeg|png|webp|gif)$/.test(mediaType)) {

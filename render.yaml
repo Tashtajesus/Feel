@@ -1,0 +1,17 @@
+# Render Blueprint: Dashboard → New → Blueprint → выбрать этот репозиторий.
+services:
+  - type: web
+    name: feel-calories
+    runtime: node
+    plan: free
+    rootDir: calorie-app
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ACCESS_CODE
+        sync: false

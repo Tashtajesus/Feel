@@ -7,18 +7,26 @@ const MEAL_ICONS = { breakfast: "🍳", lunch: "🍲", dinner: "🍽️", snack:
 const OFF = "https://world.openfoodfacts.org";
 
 const defaultState = () => ({
-  profile: { sex: "m", age: 28, height: 178, weight: 75, activity: "1.375", goal: "keep" },
+  profile: {
+    sex: "m", age: 28, height: 178, weight: 75, activity: "1.375",
+    neck: null, waist: null, hips: null, bodyFat: null,
+    goal: "keep", targetWeight: null, pace: null,
+  },
   targets: { kcal: 2300, p: 140, f: 75, c: 260, water: 2000 },
   entries: {},
   water: {},
   weights: [],
   recent: [],
+  measurements: [],
 });
 
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORE_KEY));
-    if (saved) return { ...defaultState(), ...saved };
+    if (saved) {
+      const base = defaultState();
+      return { ...base, ...saved, profile: { ...base.profile, ...saved.profile } };
+    }
   } catch {}
   return defaultState();
 }
@@ -285,6 +293,23 @@ function toJpegBase64(img, maxSide, quality) {
   return canvas.toDataURL("image/jpeg", quality).split(",")[1];
 }
 
+const CODE_KEY = "feel-access-code";
+function getAccessCode() {
+  try {
+    return localStorage.getItem(CODE_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+function askAccessCode() {
+  const code = prompt("Введите код доступа к распознаванию фото:");
+  if (!code) return false;
+  try {
+    localStorage.setItem(CODE_KEY, code.trim());
+  } catch {}
+  return true;
+}
+
 async function analyze() {
   photoResult = null;
   $("#scan-overlay").classList.add("on");
@@ -294,12 +319,18 @@ async function analyze() {
   $("#photo-save").disabled = true;
   $("#reanalyze").disabled = true;
   try {
-    const res = await fetch("/api/analyze", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: photoData.image, mediaType: photoData.mediaType, hint: $("#photo-hint").value }),
-    });
-    const data = await res.json().catch(() => ({}));
+    const send = () =>
+      fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Access-Code": getAccessCode() },
+        body: JSON.stringify({ image: photoData.image, mediaType: photoData.mediaType, hint: $("#photo-hint").value }),
+      });
+    let res = await send();
+    let data = await res.json().catch(() => ({}));
+    if (res.status === 401 && data.needCode && askAccessCode()) {
+      res = await send();
+      data = await res.json().catch(() => ({}));
+    }
     if (!res.ok) throw new Error(data.error || `Ошибка сервера (${res.status})`);
     photoResult = {
       dish: data.dish,
@@ -641,41 +672,247 @@ $("#manual-form").addEventListener("submit", (e) => {
   toast("Добавлено");
 });
 
-// ---------- Профиль и норма ----------
+// ---------- Профиль и расчёт нормы ----------
+const KCAL_PER_KG = 7700; // энергия 1 кг жировой ткани
+const PACE = { lose: { min: 0.1, max: 1, def: 0.5 }, gain: { min: 0.1, max: 0.5, def: 0.25 } };
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const fmtDate = (key) => key.slice(5).split("-").reverse().join(".");
+
 function renderProfile() {
-  const pf = $("#profile-form");
-  for (const [k, v] of Object.entries(state.profile)) if (pf.elements[k]) pf.elements[k].value = v;
+  const els = $("#profile-form").elements;
+  for (const [k, v] of Object.entries(state.profile)) if (els[k]) els[k].value = v ?? "";
   const tf = $("#targets-form");
   for (const [k, v] of Object.entries(state.targets)) if (tf.elements[k]) tf.elements[k].value = v;
+  syncProfileForm();
 }
 
-function calcTargets({ sex, age, height, weight, activity, goal }) {
-  // Формула Миффлина — Сан Жеора
-  const bmr = 10 * weight + 6.25 * height - 5 * age + (sex === "m" ? 5 : -161);
-  const tdee = bmr * Number(activity);
-  const kcal = Math.round((tdee * { lose: 0.82, keep: 1, gain: 1.12 }[goal]) / 10) * 10;
-  const p = Math.round(weight * (goal === "keep" ? 1.6 : 2));
-  const f = Math.round((kcal * 0.28) / 9);
-  const c = Math.max(0, Math.round((kcal - p * 4 - f * 9) / 4));
-  return { kcal, p, f, c };
-}
-
-$("#profile-form").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const fd = new FormData(e.target);
-  const profile = {
-    sex: fd.get("sex"),
-    age: Number(fd.get("age")),
-    height: Number(fd.get("height")),
-    weight: Number(fd.get("weight")),
-    activity: fd.get("activity"),
-    goal: fd.get("goal"),
+function readProfile() {
+  const els = $("#profile-form").elements;
+  const num = (k) => {
+    const v = parseFloat(els[k].value);
+    return Number.isFinite(v) ? v : null;
   };
-  state.profile = profile;
-  state.targets = { ...state.targets, ...calcTargets(profile), water: Math.round((profile.weight * 30) / 250) * 250 };
+  return {
+    sex: els.sex.value || "m",
+    age: num("age"),
+    height: num("height"),
+    weight: num("weight"),
+    activity: els.activity.value,
+    neck: num("neck"),
+    waist: num("waist"),
+    hips: num("hips"),
+    bodyFat: num("bodyFat"),
+    goal: els.goal.value || "keep",
+    targetWeight: num("targetWeight"),
+    pace: num("pace"),
+  };
+}
+
+function syncProfileForm() {
+  const p = state.profile;
+  const els = $("#profile-form").elements;
+  $("#hips-label").hidden = p.sex !== "f";
+  $("#goal-extra").hidden = p.goal === "keep";
+  if (p.goal !== "keep") {
+    const range = PACE[p.goal];
+    els.pace.min = range.min;
+    els.pace.max = range.max;
+    els.pace.value = clamp(p.pace ?? range.def, range.min, range.max);
+    const pct = p.weight ? ` · ${round((els.pace.value / p.weight) * 100, 1)}% веса` : "";
+    $("#pace-out").textContent = `${els.pace.value} кг в неделю${pct}`;
+  }
+  renderPlan(computePlan(p));
+}
+
+$("#profile-form").addEventListener("input", (e) => {
+  const prevGoal = state.profile.goal;
+  state.profile = { ...state.profile, ...readProfile() };
+  if (state.profile.goal !== prevGoal && state.profile.goal !== "keep") state.profile.pace = PACE[state.profile.goal].def;
+  save();
+  syncProfileForm();
+});
+$("#profile-form").addEventListener("submit", (e) => e.preventDefault());
+
+// Формула ВМС США: % жира по обхватам шеи, талии (и бёдер у женщин) и росту.
+function bodyFatNavy({ sex, height, neck, waist, hips }) {
+  if (!height || !neck || !waist) return null;
+  if (sex === "m") {
+    if (waist <= neck) return null;
+    return 495 / (1.0324 - 0.19077 * Math.log10(waist - neck) + 0.15456 * Math.log10(height)) - 450;
+  }
+  if (!hips || waist + hips <= neck) return null;
+  return 495 / (1.29579 - 0.35004 * Math.log10(waist + hips - neck) + 0.221 * Math.log10(height)) - 450;
+}
+
+const COLORS = { good: "var(--good)", mid: "var(--carbs)", bad: "var(--danger)", low: "var(--fat)" };
+
+function bmiClass(bmi) {
+  if (bmi < 18.5) return ["Дефицит массы", "low"];
+  if (bmi < 25) return ["Норма", "good"];
+  if (bmi < 30) return ["Избыточный вес", "mid"];
+  return ["Ожирение", "bad"];
+}
+
+function fatClass(bf, sex) {
+  const t = sex === "m" ? [6, 14, 18, 25] : [14, 21, 25, 32];
+  if (bf < t[0]) return ["Ниже нормы", "low"];
+  if (bf < t[1]) return ["Спортивный", "good"];
+  if (bf < t[2]) return ["Фитнес", "good"];
+  if (bf < t[3]) return ["Средний", "mid"];
+  return ["Высокий", "bad"];
+}
+
+function computePlan(p) {
+  if (!(p.age && p.height && p.weight)) return null;
+  const warnings = [];
+  const h2 = (p.height / 100) ** 2;
+  const bmi = p.weight / h2;
+
+  let bf = p.bodyFat;
+  let bfSource = bf ? "введено вручную" : null;
+  if (!bf) {
+    const navy = bodyFatNavy(p);
+    if (navy > 2 && navy < 70) {
+      bf = navy;
+      bfSource = "по замерам";
+    } else if (p.neck || p.waist || p.hips) {
+      warnings.push(["mid", p.sex === "f" ? "Для расчёта % жира нужны шея, талия и бёдра." : "Для расчёта % жира нужны шея и талия (талия больше шеи)."]);
+    }
+  }
+  const lbm = bf ? p.weight * (1 - bf / 100) : null;
+
+  // С известным % жира точнее Кэтч — МакАрдл (считает от сухой массы), иначе Миффлин — Сан Жеор.
+  const mifflin = 10 * p.weight + 6.25 * p.height - 5 * p.age + (p.sex === "m" ? 5 : -161);
+  const bmr = lbm ? 370 + 21.6 * lbm : mifflin;
+  const formula = lbm ? "Кэтч — МакАрдл" : "Миффлин — Сан Жеор";
+  const tdee = bmr * Number(p.activity);
+
+  let delta = 0;
+  let pace = 0;
+  if (p.goal !== "keep") {
+    const range = PACE[p.goal];
+    pace = clamp(p.pace ?? range.def, range.min, range.max);
+    delta = ((p.goal === "lose" ? -1 : 1) * pace * KCAL_PER_KG) / 7;
+    if (p.goal === "lose" && pace > p.weight * 0.01) {
+      warnings.push(["bad", "Темп быстрее 1% веса в неделю: велик риск потерять мышцы и сорваться. Лучше выбрать темп помедленнее."]);
+    }
+  }
+
+  let kcal = tdee + delta;
+  const floor = Math.round(Math.max(p.sex === "m" ? 1500 : 1200, bmr * 0.9) / 10) * 10;
+  if (kcal < floor) {
+    warnings.push(["bad", `При таком темпе вышло бы ${round(kcal)} ккал — слишком мало. Норма поднята до безопасных ${floor} ккал, цель будет достигнута позже.`]);
+    kcal = floor;
+  }
+  kcal = Math.round(kcal / 10) * 10;
+  const realDelta = kcal - tdee;
+
+  // Белок: от сухой массы, если она известна; при ожирении — от веса при ИМТ 25, чтобы не завышать.
+  const refWeight = bmi >= 30 ? 25 * h2 : p.weight;
+  const protein = Math.round(lbm ? lbm * (p.goal === "lose" ? 2.3 : 2) : refWeight * { lose: 2, keep: 1.6, gain: 1.8 }[p.goal]);
+  let fat = Math.round(Math.max((kcal * 0.27) / 9, refWeight * 0.7));
+  let carbs = Math.round((kcal - protein * 4 - fat * 9) / 4);
+  if (carbs < 50) {
+    carbs = 50;
+    fat = Math.max(0, Math.round((kcal - protein * 4 - carbs * 4) / 9));
+  }
+
+  const healthy = [round(18.5 * h2, 1), round(24.9 * h2, 1)];
+  let eta = null;
+  if (p.goal !== "keep" && p.targetWeight) {
+    const diff = p.targetWeight - p.weight;
+    if ((p.goal === "lose" && diff >= 0) || (p.goal === "gain" && diff <= 0)) {
+      warnings.push(["mid", p.goal === "lose" ? "Желаемый вес не меньше текущего — проверьте цель." : "Желаемый вес не больше текущего — проверьте цель."]);
+    } else {
+      const weeklyKg = (Math.abs(realDelta) * 7) / KCAL_PER_KG;
+      const weeks = Math.abs(diff) / weeklyKg;
+      eta = { weeks: Math.ceil(weeks), date: shiftDate(todayKey(), Math.ceil(weeks * 7)), kg: Math.abs(round(diff, 1)) };
+      if (p.targetWeight < healthy[0]) warnings.push(["bad", `Желаемый вес ниже здорового диапазона для вашего роста (от ${healthy[0]} кг).`]);
+    }
+  }
+  if (p.goal === "gain" && bf && bf >= (p.sex === "m" ? 25 : 32)) {
+    warnings.push(["mid", "При высоком % жира набор массы даст в основном жир. Часто выгоднее сначала «рекомпозиция»: поддержание веса + силовые тренировки + много белка."]);
+  }
+  if (p.age < 18) warnings.push(["mid", "Для подростков формулы неточны — дефицит калорий лучше согласовать с врачом."]);
+
+  return {
+    bmi, bf, bfSource, lbm, bmr, tdee, formula, kcal, delta: realDelta, pace,
+    protein, fat, carbs, healthy, eta, warnings,
+    whtr: p.waist ? p.waist / p.height : null,
+    water: Math.round((p.weight * 30) / 250) * 250,
+  };
+}
+
+let currentPlan = null;
+
+function renderPlan(plan) {
+  currentPlan = plan;
+  $("#apply-targets").disabled = !plan;
+  if (!plan) {
+    $("#body-stats").innerHTML = `<p class="muted small">Заполните возраст, рост и вес.</p>`;
+    $("#calc-target").hidden = true;
+    $("#calc-warnings").innerHTML = "";
+    $("#calc-formula").textContent = "";
+    return;
+  }
+  const sex = state.profile.sex;
+  const stat = (k, v, [label, tone] = []) =>
+    `<div class="stat"><span class="k">${k}</span><b>${v}</b>${label ? `<span class="tag" style="--c:${COLORS[tone]}">${label}</span>` : ""}</div>`;
+  const whtrClass = (r) => (r < 0.4 ? ["Низкий", "low"] : r < 0.5 ? ["Норма", "good"] : r < 0.6 ? ["Повышенный риск", "mid"] : ["Высокий риск", "bad"]);
+
+  $("#calc-formula").textContent = plan.formula;
+  $("#body-stats").innerHTML = [
+    stat("Индекс массы тела", round(plan.bmi, 1), bmiClass(plan.bmi)),
+    plan.bf
+      ? stat(`% жира (${plan.bfSource})`, `${round(plan.bf, 1)}%`, fatClass(plan.bf, sex))
+      : stat("% жира", "—", ["добавьте замеры", "mid"]),
+    stat("Сухая масса тела", plan.lbm ? `${round(plan.lbm, 1)} кг` : "—"),
+    stat("Талия / рост", plan.whtr ? round(plan.whtr, 2) : "—", plan.whtr ? whtrClass(plan.whtr) : undefined),
+    stat("Базовый обмен", `${round(plan.bmr)} ккал`),
+    stat("Расход за день", `${round(plan.tdee)} ккал`),
+    stat("Здоровый вес для роста", `${plan.healthy[0]}–${plan.healthy[1]} кг`),
+    stat("Вода", `${plan.water} мл`),
+  ].join("");
+
+  const d = round(plan.delta);
+  const deltaText = Math.abs(d) < 20 ? "Поддержание веса" : d < 0 ? `Дефицит ${-d} ккал в день` : `Профицит ${d} ккал в день`;
+  let etaText = "";
+  if (plan.eta) {
+    const [y, m, dd] = plan.eta.date.split("-").map(Number);
+    const date = new Date(y, m - 1, dd).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+    etaText = `<div class="line">${state.profile.goal === "lose" ? "−" : "+"}${plan.eta.kg} кг ≈ за ${plan.eta.weeks} нед. — к ${date}</div>`;
+  }
+  $("#calc-target").hidden = false;
+  $("#calc-target").innerHTML = `
+    <div class="line">Ваша дневная норма</div>
+    <div class="big">${plan.kcal} ккал</div>
+    <div class="line">${deltaText}</div>
+    ${etaText}
+    <div class="macro-row">
+      <div><b>${plan.protein} г</b>белки</div>
+      <div><b>${plan.fat} г</b>жиры</div>
+      <div><b>${plan.carbs} г</b>углеводы</div>
+    </div>`;
+  $("#calc-warnings").innerHTML = plan.warnings.map(([t, msg]) => `<div class="warn ${t === "bad" ? "bad" : ""}">${esc(msg)}</div>`).join("");
+}
+
+$("#apply-targets").addEventListener("click", () => {
+  const plan = currentPlan;
+  if (!plan) return;
+  const p = state.profile;
+  const date = todayKey();
+  state.targets = { kcal: plan.kcal, p: plan.protein, f: plan.fat, c: plan.carbs, water: plan.water };
+  const lastWeight = state.weights[state.weights.length - 1];
+  if (!lastWeight || lastWeight.kg !== p.weight) {
+    state.weights = [...state.weights.filter((x) => x.date !== date), { date, kg: p.weight }].sort((a, b) => a.date.localeCompare(b.date));
+  }
+  if (p.waist || p.neck || p.hips || plan.bf) {
+    const m = { date, neck: p.neck, waist: p.waist, hips: p.sex === "f" ? p.hips : null, bf: plan.bf ? round(plan.bf, 1) : null };
+    state.measurements = [...state.measurements.filter((x) => x.date !== date), m].sort((a, b) => a.date.localeCompare(b.date));
+  }
   save();
   renderProfile();
-  toast(`Ваша норма: ${state.targets.kcal} ккал в день`);
+  toast(`Норма ${plan.kcal} ккал применена`);
 });
 
 $("#targets-form").addEventListener("submit", (e) => {
@@ -701,7 +938,8 @@ $("#import-input").addEventListener("change", async (e) => {
   try {
     const data = JSON.parse(await file.text());
     if (typeof data !== "object" || !data.entries) throw new Error();
-    state = { ...defaultState(), ...data };
+    const base = defaultState();
+    state = { ...base, ...data, profile: { ...base.profile, ...data.profile } };
     save();
     renderProfile();
     toast("Данные импортированы");
@@ -771,10 +1009,34 @@ function renderStats() {
     $("#weight-delta").textContent = "";
   }
 
+  renderBodyHistory();
+
   let streak = 0;
   for (let d = todayKey(); dayEntries(d).length; d = shiftDate(d, -1)) streak++;
   if (!streak) for (let d = shiftDate(todayKey(), -1); dayEntries(d).length; d = shiftDate(d, -1)) streak++;
   $("#streak").textContent = streak;
+}
+
+function renderBodyHistory() {
+  const ms = state.measurements;
+  const box = $("#body-history");
+  if (!ms.length) {
+    box.innerHTML = `<p class="muted small">Внесите замеры в профиле и нажмите «Применить» — здесь появится динамика талии, бёдер и % жира.</p>`;
+    $("#body-since").textContent = "";
+    return;
+  }
+  const rows = [["waist", "Талия", "см"], ["hips", "Бёдра", "см"], ["neck", "Шея", "см"], ["bf", "% жира", "%"]];
+  box.innerHTML = rows
+    .map(([k, label, unit]) => {
+      const vals = ms.filter((m) => m[k] != null);
+      if (!vals.length) return "";
+      const last = vals[vals.length - 1][k];
+      const diff = round(last - vals[0][k], 1);
+      const diffText = vals.length > 1 && diff ? ` <span class="muted">(${diff > 0 ? "+" : ""}${diff})</span>` : "";
+      return `<div class="body-row"><span>${label}</span><span class="d">${last} ${unit}${diffText}</span></div>`;
+    })
+    .join("");
+  $("#body-since").textContent = ms.length > 1 ? `изменение с ${fmtDate(ms[0].date)}` : `замер от ${fmtDate(ms[0].date)}`;
 }
 
 $("#weight-form").addEventListener("submit", (e) => {
